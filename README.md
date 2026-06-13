@@ -1,2 +1,3 @@
-# Connecnet
-Project for a social media to talk.
+# connectnet
+
+A new Flutter project.
