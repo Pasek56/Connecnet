@@ -351,9 +351,11 @@ class _ProfileScreenState extends State<ProfileScreen>
       itemBuilder: (context, index) {
         final tweet = filteredTweets[index];
         final globalIndex = _tweets.indexOf(tweet);
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
+        return InkWell(
+          onTap: () => _showCommentDialog(context, tweet),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Avatar
@@ -480,6 +482,97 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ],
                 ),
               ),
+            ],
+          ),
+        ));
+      },
+    );
+  }
+
+  void _showCommentDialog(BuildContext context, Map<String, dynamic> tweet) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF161C22),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 20,
+            left: 16,
+            right: 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade600,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.blue.withOpacity(0.2),
+                    child: const Text(
+                      'M',
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Respondiendo a @${tweet['handle']}',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const TextField(
+                autofocus: true,
+                maxLines: 4,
+                minLines: 1,
+                style: TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Escribe tu respuesta...',
+                  hintStyle: TextStyle(color: Colors.grey),
+                  border: InputBorder.none,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Comentario publicado')),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    child: const Text('Responder', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
             ],
           ),
         );

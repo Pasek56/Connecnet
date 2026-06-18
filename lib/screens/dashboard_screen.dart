@@ -63,9 +63,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: Colors.grey.shade800, width: 1),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _showCommentDialog(context, index),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -136,6 +139,96 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
+    ));
+  }
+
+  void _showCommentDialog(BuildContext context, int index) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF161C22),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 20,
+            left: 16,
+            right: 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade600,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                    child: Text(
+                      'U$index',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Añadir un comentario...',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                autofocus: true,
+                maxLines: 4,
+                minLines: 1,
+                decoration: InputDecoration(
+                  hintText: 'Escribe tu respuesta...',
+                  hintStyle: TextStyle(color: Colors.grey.shade600),
+                  border: InputBorder.none,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Comentario publicado')),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    child: const Text('Responder', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
     );
   }
 
