@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -12,6 +14,11 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
+  double _profileRating = 0.0;
+  String _profileName = 'Miguel Parada';
+  String _profileImageUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
+  File? _profileImageFile;
 
   // Mocked list of tweets/posts with state (empty profile)
   final List<Map<String, dynamic>> _tweets = [];
@@ -144,11 +151,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.black, width: 4),
                             ),
-                            child: const CircleAvatar(
+                            child: CircleAvatar(
                               radius: 40,
-                              backgroundImage: NetworkImage(
-                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
-                              ),
+                              backgroundImage: _profileImageFile != null
+                                  ? FileImage(_profileImageFile!) as ImageProvider
+                                  : NetworkImage(_profileImageUrl),
                             ),
                           ),
                         ),
@@ -156,16 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             OutlinedButton(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Simulación de Editar Perfil',
-                                    ),
-                                    backgroundColor: Color(0xFF1DA1F2),
-                                  ),
-                                );
-                              },
+                              onPressed: _showEditProfileDialog,
                               style: OutlinedButton.styleFrom(
                                 side: const BorderSide(
                                   color: Color(0xFF536471),
@@ -194,9 +192,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                     const SizedBox(height: 12),
 
                     // User Info
-                    const Text(
-                      'Miguel Parada',
-                      style: TextStyle(
+                    Text(
+                      _profileName,
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
@@ -249,6 +247,19 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ],
                     ),
                     const SizedBox(height: 16),
+
+                    // Rating
+                    const Text(
+                      'Calificar Perfil',
+                      style: TextStyle(
+                        color: Color(0xFF71767B),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    _buildRatingStars(),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -292,6 +303,97 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  void _showEditProfileDialog() {
+    final nameController = TextEditingController(text: _profileName);
+    File? selectedImage = _profileImageFile;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF161C22),
+              title: const Text('Editar Perfil', style: TextStyle(color: Colors.white)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Nombre',
+                        labelStyle: TextStyle(color: Colors.grey),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF1DA1F2))),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundImage: selectedImage != null
+                              ? FileImage(selectedImage!) as ImageProvider
+                              : NetworkImage(_profileImageUrl),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            final picker = ImagePicker();
+                            final pickedFile = await picker.pickImage(
+                              source: ImageSource.gallery,
+                              imageQuality: 70,
+                              maxWidth: 800,
+                              maxHeight: 800,
+                            );
+                            if (pickedFile != null) {
+                              setStateDialog(() {
+                                selectedImage = File(pickedFile.path);
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.image, color: Colors.white),
+                          label: const Text('Subir Foto', style: TextStyle(color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2F3336),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _profileName = nameController.text;
+                      if (selectedImage != null) {
+                        _profileImageFile = selectedImage;
+                      }
+                    });
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1DA1F2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                  child: const Text('Guardar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildMetaItem(IconData icon, String text, {bool isLink = false}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -307,6 +409,49 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ),
       ],
+    );
+  }
+
+  bool _profileRated = false;
+
+  Widget _buildRatingStars() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(5, (index) {
+        return IconButton(
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          icon: Icon(
+            index < _profileRating ? Icons.star : Icons.star_border,
+            color: Colors.amber,
+            size: 28,
+          ),
+          onPressed: () {
+            if (_profileRated) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Ya has calificado este perfil'),
+                  backgroundColor: const Color(0xFF1DA1F2),
+                ),
+              );
+              return;
+            }
+            setState(() {
+              _profileRating = index + 1.0;
+              _profileRated = true;
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Calificaste este perfil con ${_profileRating.toInt()} estrellas',
+                ),
+                backgroundColor: const Color(0xFF1DA1F2),
+              ),
+            );
+          },
+        );
+      }),
     );
   }
 
@@ -356,135 +501,140 @@ class _ProfileScreenState extends State<ProfileScreen>
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Avatar
-              CircleAvatar(
-                radius: 20,
-                backgroundImage: NetworkImage(tweet['avatarUrl']),
-              ),
-              const SizedBox(width: 12),
-              // Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header (Display Name, Handle, Time)
-                    Row(
-                      children: [
-                        Text(
-                          tweet['displayName'],
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontSize: 15,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            '@${tweet['handle']} · ${tweet['time']}',
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Avatar
+                CircleAvatar(
+                  radius: 20,
+                  backgroundImage: NetworkImage(tweet['avatarUrl']),
+                ),
+                const SizedBox(width: 12),
+                // Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header (Display Name, Handle, Time)
+                      Row(
+                        children: [
+                          Text(
+                            tweet['displayName'],
                             style: const TextStyle(
-                              color: Color(0xFF71767B),
-                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontSize: 15,
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              '@${tweet['handle']} · ${tweet['time']}',
+                              style: const TextStyle(
+                                color: Color(0xFF71767B),
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Icon(
+                            Icons.more_horiz,
+                            color: Color(0xFF71767B),
+                            size: 18,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Tweet Text
+                      Text(
+                        tweet['content'],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          height: 1.3,
                         ),
-                        const Icon(
-                          Icons.more_horiz,
-                          color: Color(0xFF71767B),
-                          size: 18,
+                      ),
+
+                      // Optional image attachment
+                      if (tweet['hasImage']) ...[
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFF2F3336),
+                              ),
+                            ),
+                            child: Image.network(
+                              tweet['imageUrl'],
+                              fit: BoxFit.cover,
+                              height: 200,
+                              width: double.infinity,
+                            ),
+                          ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 6),
 
-                    // Tweet Text
-                    Text(
-                      tweet['content'],
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        height: 1.3,
-                      ),
-                    ),
-
-                    // Optional image attachment
-                    if (tweet['hasImage']) ...[
                       const SizedBox(height: 12),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFF2F3336)),
+
+                      // Action buttons bar
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildActionButton(
+                            Icons.chat_bubble_outline_rounded,
+                            tweet['comments'].toString(),
+                            const Color(0xFF71767B),
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Comentarios simulados'),
+                                ),
+                              );
+                            },
                           ),
-                          child: Image.network(
-                            tweet['imageUrl'],
-                            fit: BoxFit.cover,
-                            height: 200,
-                            width: double.infinity,
+                          _buildActionButton(
+                            Icons.repeat_rounded,
+                            tweet['retweets'].toString(),
+                            tweet['isRetweeted']
+                                ? const Color(0xFF00BA7C)
+                                : const Color(0xFF71767B),
+                            onTap: () => _toggleRetweet(globalIndex),
                           ),
-                        ),
+                          _buildActionButton(
+                            tweet['isLiked']
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            tweet['likes'].toString(),
+                            tweet['isLiked']
+                                ? const Color(0xFFF91880)
+                                : const Color(0xFF71767B),
+                            onTap: () => _toggleLike(globalIndex),
+                          ),
+                          _buildActionButton(
+                            Icons.share_outlined,
+                            '',
+                            const Color(0xFF71767B),
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Enlace copiado al portapapeles',
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ],
-
-                    const SizedBox(height: 12),
-
-                    // Action buttons bar
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildActionButton(
-                          Icons.chat_bubble_outline_rounded,
-                          tweet['comments'].toString(),
-                          const Color(0xFF71767B),
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Comentarios simulados'),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildActionButton(
-                          Icons.repeat_rounded,
-                          tweet['retweets'].toString(),
-                          tweet['isRetweeted']
-                              ? const Color(0xFF00BA7C)
-                              : const Color(0xFF71767B),
-                          onTap: () => _toggleRetweet(globalIndex),
-                        ),
-                        _buildActionButton(
-                          tweet['isLiked']
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          tweet['likes'].toString(),
-                          tweet['isLiked']
-                              ? const Color(0xFFF91880)
-                              : const Color(0xFF71767B),
-                          onTap: () => _toggleLike(globalIndex),
-                        ),
-                        _buildActionButton(
-                          Icons.share_outlined,
-                          '',
-                          const Color(0xFF71767B),
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Enlace copiado al portapapeles'),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ));
+        );
       },
     );
   }
@@ -534,7 +684,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Expanded(
                     child: Text(
                       'Respondiendo a @${tweet['handle']}',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -568,7 +722,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
-                    child: const Text('Responder', style: TextStyle(color: Colors.white)),
+                    child: const Text(
+                      'Responder',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ],
               ),
