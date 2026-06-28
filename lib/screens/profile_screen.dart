@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -12,6 +13,9 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _isLoading = true;
+  Map<String, dynamic>? _profileData;
+  final _supabase = Supabase.instance.client;
 
   // Mocked list of tweets/posts with state (empty profile)
   final List<Map<String, dynamic>> _tweets = [];
@@ -20,6 +24,79 @@ class _ProfileScreenState extends State<ProfileScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user != null) {
+        final data = await _supabase
+            .schema('perfiles')
+            .from('perfil_unificado')
+            .select()
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (data != null) {
+          setState(() {
+            _profileData = data;
+          });
+        } else {
+          // Si no existe, crear uno por defecto
+          final nameParts = (user.email ?? 'Usuario').split('@').first.split('.');
+          final name = nameParts.first;
+          final lastName = nameParts.length > 1 ? nameParts[1] : '';
+
+          final defaultProfile = {
+            'user_id': user.id,
+            'profile_type': 'estudiante',
+            'nombres': name,
+            'apellidos': lastName,
+            'correo': user.email ?? '',
+            'pfp': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+            'semestre': 1,
+            'experiencia': '',
+            'preparador': 'N',
+            'rating1e': 0,
+            'rating1n': '',
+            'rating2e': 0,
+            'rating2n': '',
+            'rating3e': 0,
+            'rating3n': '',
+            'mater1': '',
+            'mater2': '',
+            'mater3': '',
+            'empleo1': '',
+            'empleo2': '',
+            'empleo3': '',
+            'titulo': '',
+          };
+          await _supabase.schema('perfiles').from('perfil_unificado').insert(defaultProfile);
+          setState(() {
+            _profileData = defaultProfile;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar perfil: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -69,7 +146,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               backgroundColor: Colors.black,
               elevation: 0,
               leading: CircleAvatar(
-                backgroundColor: Colors.black.withOpacity(0.5),
+                backgroundColor: Colors.black.withValues(alpha: 0.5),
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
                   onPressed: widget.onLogout,
@@ -77,7 +154,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
               actions: [
                 CircleAvatar(
-                  backgroundColor: Colors.black.withOpacity(0.5),
+                  backgroundColor: Colors.black.withValues(alpha: 0.5),
                   child: IconButton(
                     icon: const Icon(Icons.logout, color: Colors.redAccent),
                     tooltip: 'Cerrar Sesión',
@@ -115,8 +192,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.black.withOpacity(0.3),
-                            Colors.black.withOpacity(0.7),
+                            Colors.black.withValues(alpha: 0.3),
+                            Colors.black.withValues(alpha: 0.7),
                           ],
                         ),
                       ),

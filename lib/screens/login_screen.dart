@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+final supabase = Supabase.instance.client;
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onLoginSuccess;
@@ -21,6 +24,7 @@ class _LoginScreenState extends State<LoginScreen>
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  String _selectedProfileType = 'estudiante';
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -68,30 +72,133 @@ class _LoginScreenState extends State<LoginScreen>
         _isLoading = true;
       });
 
-      // Simulate network request
-      await Future.delayed(const Duration(seconds: 2));
+      try {
+        if (_isLogin) {
+          await supabase.auth.signInWithPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
 
-      setState(() {
-        _isLoading = false;
-      });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  '¡Inicio de sesión exitoso!',
+                  style: TextStyle(color: Colors.white),
+                ),
+                backgroundColor: const Color(0xFF1DA1F2),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+            widget.onLoginSuccess();
+          }
+        } else {
+          final response = await supabase.auth.signUp(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isLogin
-                  ? '¡Inicio de sesión exitoso!'
-                  : '¡Registro de cuenta exitoso!',
-              style: const TextStyle(color: Colors.white),
+          final user = response.user;
+          if (user == null) {
+            throw const AuthException('No se pudo crear el usuario.');
+          }
+
+          final nameParts = _nameController.text.trim().split(' ');
+          final nombres = nameParts.isNotEmpty ? nameParts.first : '';
+          final apellidos = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+
+          await supabase.schema('perfiles').from('perfil_unificado').insert({
+            'user_id': user.id,
+            'profile_type': _selectedProfileType,
+            'nombres': nombres,
+            'apellidos': apellidos,
+            'correo': _emailController.text.trim(),
+            'pfp': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+            'rating1e': 0,
+            'rating1n': '',
+            'rating2e': 0,
+            'rating2n': '',
+            'rating3e': 0,
+            'rating3n': '',
+            'semestre': _selectedProfileType == 'estudiante' ? 1 : null,
+            'experiencia': '',
+            'preparador': 'N',
+            'mater1': '',
+            'mater2': '',
+            'mater3': '',
+            'empleo1': '',
+            'empleo2': '',
+            'empleo3': '',
+            'titulo': '',
+          });
+
+          if (mounted) {
+            final needsConfirmation = response.session == null;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  needsConfirmation
+                      ? '¡Registro exitoso! Por favor confirma tu correo electrónico.'
+                      : '¡Registro de cuenta y perfil exitoso!',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                backgroundColor: const Color(0xFF1DA1F2),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+            if (!needsConfirmation) {
+              widget.onLoginSuccess();
+            } else {
+              setState(() {
+                _isLogin = true;
+              });
+            }
+          }
+        }
+      } on AuthException catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                e.message,
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            backgroundColor: const Color(0xFF1DA1F2),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Ocurrió un error inesperado: $e',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
-        );
-        widget.onLoginSuccess();
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -137,7 +244,9 @@ class _LoginScreenState extends State<LoginScreen>
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1DA1F2).withOpacity(0.1),
+                            color: const Color(
+                              0xFF1DA1F2,
+                            ).withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -184,6 +293,28 @@ class _LoginScreenState extends State<LoginScreen>
                               return 'Por favor ingresa tu nombre';
                             }
                             return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedProfileType,
+                          dropdownColor: const Color(0xFF15181C),
+                          style: const TextStyle(color: Colors.white),
+                          decoration: _buildInputDecoration(
+                            label: 'Tipo de perfil',
+                            prefixIcon: Icons.badge_outlined,
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'estudiante', child: Text('Estudiante')),
+                            DropdownMenuItem(value: 'docente', child: Text('Docente')),
+                            DropdownMenuItem(value: 'egresado', child: Text('Egresado')),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedProfileType = value;
+                              });
+                            }
                           },
                         ),
                         const SizedBox(height: 16),
@@ -314,7 +445,7 @@ class _LoginScreenState extends State<LoginScreen>
                           foregroundColor: Colors.white,
                           disabledBackgroundColor: const Color(
                             0xFF1DA1F2,
-                          ).withOpacity(0.5),
+                          ).withValues(alpha: 0.5),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -457,7 +588,7 @@ class _LoginScreenState extends State<LoginScreen>
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -493,7 +624,7 @@ class _LoginScreenState extends State<LoginScreen>
       ),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 14),
-        side: BorderSide(color: Colors.white.withOpacity(0.08)),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: const Color(0xFF1A1D21),
       ),
