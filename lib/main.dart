@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/dashboard_screen.dart';
 
-void main() {
+import 'dart:async';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: 'https://cjxgqskachxnvnsmwiaa.supabase.co',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqeGdxc2thY2h4bnZuc213aWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzOTIzODYsImV4cCI6MjA5Njk2ODM4Nn0.RiKdksaNwRHBO07dx57DSUM2h_3MU9Z2q7mswHnR4lw',
+  );
   runApp(const ConnectNetApp());
 }
+
+final supabase = Supabase.instance.client;
 
 class ConnectNetApp extends StatelessWidget {
   const ConnectNetApp({super.key});
@@ -39,18 +50,40 @@ class MainNavigationController extends StatefulWidget {
 class _MainNavigationControllerState extends State<MainNavigationController> {
   bool _isLoggedIn = false;
   int _currentIndex = 0;
+  StreamSubscription<AuthState>? _authSubscription;
 
-  void _login() {
-    setState(() {
-      _isLoggedIn = true;
+  @override
+  void initState() {
+    super.initState();
+    _isLoggedIn = supabase.auth.currentSession != null;
+    _authSubscription = supabase.auth.onAuthStateChange.listen((data) {
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = data.session != null;
+          if (!_isLoggedIn) {
+            _currentIndex = 0;
+          }
+        });
+      }
     });
   }
 
-  void _logout() {
-    setState(() {
-      _isLoggedIn = false;
-      _currentIndex = 0;
-    });
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _login() {
+    // Manejado automáticamente por el listener reactivo
+  }
+
+  void _logout() async {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      // Ignorar o registrar error
+    }
   }
 
   @override
@@ -70,7 +103,10 @@ class _MainNavigationControllerState extends State<MainNavigationController> {
         duration: const Duration(milliseconds: 300),
         child: _currentIndex == 0
             ? const DashboardScreen(key: ValueKey('DashboardPage'))
-            : ProfileScreen(key: const ValueKey('ProfilePage'), onLogout: _logout),
+            : ProfileScreen(
+                key: const ValueKey('ProfilePage'),
+                onLogout: _logout,
+              ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,

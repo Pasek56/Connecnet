@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -14,10 +15,14 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _isLoading = true;
+  Map<String, dynamic>? _profileData;
+  final _supabase = Supabase.instance.client;
 
   double _profileRating = 0.0;
   String _profileName = 'Miguel Parada';
-  String _profileImageUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
+  final String _profileImageUrl =
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
   File? _profileImageFile;
 
   // Mocked list of tweets/posts with state (empty profile)
@@ -27,6 +32,86 @@ class _ProfileScreenState extends State<ProfileScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user != null) {
+        final data = await _supabase
+            .schema('perfiles')
+            .from('perfil_unificado')
+            .select()
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (data != null) {
+          setState(() {
+            _profileData = data;
+          });
+        } else {
+          // Si no existe, crear uno por defecto
+          final nameParts = (user.email ?? 'Usuario')
+              .split('@')
+              .first
+              .split('.');
+          final name = nameParts.first;
+          final lastName = nameParts.length > 1 ? nameParts[1] : '';
+
+          final defaultProfile = {
+            'user_id': user.id,
+            'profile_type': 'estudiante',
+            'nombres': name,
+            'apellidos': lastName,
+            'correo': user.email ?? '',
+            'pfp':
+                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+            'semestre': 1,
+            'experiencia': '',
+            'preparador': 'N',
+            'rating1e': 0,
+            'rating1n': '',
+            'rating2e': 0,
+            'rating2n': '',
+            'rating3e': 0,
+            'rating3n': '',
+            'mater1': '',
+            'mater2': '',
+            'mater3': '',
+            'empleo1': '',
+            'empleo2': '',
+            'empleo3': '',
+            'titulo': '',
+          };
+          await _supabase
+              .schema('perfiles')
+              .from('perfil_unificado')
+              .insert(defaultProfile);
+          setState(() {
+            _profileData = defaultProfile;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar perfil: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -76,7 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               backgroundColor: Colors.black,
               elevation: 0,
               leading: CircleAvatar(
-                backgroundColor: Colors.black.withOpacity(0.5),
+                backgroundColor: Colors.black.withValues(alpha: 0.5),
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
                   onPressed: widget.onLogout,
@@ -84,7 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
               actions: [
                 CircleAvatar(
-                  backgroundColor: Colors.black.withOpacity(0.5),
+                  backgroundColor: Colors.black.withValues(alpha: 0.5),
                   child: IconButton(
                     icon: const Icon(Icons.logout, color: Colors.redAccent),
                     tooltip: 'Cerrar Sesión',
@@ -122,8 +207,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.black.withOpacity(0.3),
-                            Colors.black.withOpacity(0.7),
+                            Colors.black.withValues(alpha: 0.3),
+                            Colors.black.withValues(alpha: 0.7),
                           ],
                         ),
                       ),
@@ -154,7 +239,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                             child: CircleAvatar(
                               radius: 40,
                               backgroundImage: _profileImageFile != null
-                                  ? FileImage(_profileImageFile!) as ImageProvider
+                                  ? FileImage(_profileImageFile!)
+                                        as ImageProvider
                                   : NetworkImage(_profileImageUrl),
                             ),
                           ),
@@ -314,7 +400,10 @@ class _ProfileScreenState extends State<ProfileScreen>
           builder: (context, setStateDialog) {
             return AlertDialog(
               backgroundColor: const Color(0xFF161C22),
-              title: const Text('Editar Perfil', style: TextStyle(color: Colors.white)),
+              title: const Text(
+                'Editar Perfil',
+                style: TextStyle(color: Colors.white),
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -325,8 +414,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                       decoration: const InputDecoration(
                         labelText: 'Nombre',
                         labelStyle: TextStyle(color: Colors.grey),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF1DA1F2))),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF1DA1F2)),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -355,7 +448,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                             }
                           },
                           icon: const Icon(Icons.image, color: Colors.white),
-                          label: const Text('Subir Foto', style: TextStyle(color: Colors.white)),
+                          label: const Text(
+                            'Subir Foto',
+                            style: TextStyle(color: Colors.white),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF2F3336),
                           ),
@@ -368,7 +464,10 @@ class _ProfileScreenState extends State<ProfileScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -382,9 +481,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1DA1F2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
-                  child: const Text('Guardar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Guardar',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             );
