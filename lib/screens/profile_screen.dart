@@ -164,20 +164,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                 backgroundColor: Colors.black.withValues(alpha: 0.5),
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: widget.onLogout,
+                  onPressed: () => Navigator.pop(context),
                 ),
               ),
-              actions: [
-                CircleAvatar(
-                  backgroundColor: Colors.black.withValues(alpha: 0.5),
-                  child: IconButton(
-                    icon: const Icon(Icons.logout, color: Colors.redAccent),
-                    tooltip: 'Cerrar Sesión',
-                    onPressed: widget.onLogout,
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
               flexibleSpace: FlexibleSpaceBar(
                 collapseMode: CollapseMode.pin,
                 background: Stack(

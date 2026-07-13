@@ -1,20 +1,46 @@
 import 'package:flutter/material.dart';
+import 'profile_screen.dart';
+import 'news_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final VoidCallback? onLogout;
+
+  const DashboardScreen({super.key, this.onLogout});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  final TextEditingController _postController = TextEditingController();
+
   final List<Map<String, dynamic>> _posts = List.generate(
     5,
     (index) => {
+      'content': 'Este es el contenido de la publicación número $index. Aquí puedes compartir tus ideas, noticias y conectar con otros desarrolladores en ConnectNet.',
       'likes': (index + 1) * 7,
       'isLiked': false,
     },
   );
+
+  @override
+  void dispose() {
+    _postController.dispose();
+    super.dispose();
+  }
+
+  void _addPost() {
+    if (_postController.text.isNotEmpty) {
+      setState(() {
+        _posts.insert(0, {
+          'content': _postController.text,
+          'likes': 0,
+          'isLiked': false,
+        });
+        _postController.clear();
+      });
+    }
+  }
 
   void _toggleLike(int index) {
     setState(() {
@@ -30,26 +56,115 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Publicaciones',
-          style: TextStyle(fontWeight: FontWeight.bold),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'ConnectNet',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          bottom: const TabBar(
+            indicatorColor: Color(0xFF1DA1F2),
+            indicatorWeight: 3,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.grey,
+            tabs: [
+              Tab(text: 'Publicaciones'),
+              Tab(text: 'Noticias'),
+            ],
+          ),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: ListView.builder(
-        itemCount: 5,
-        itemBuilder: (context, index) {
-          return _buildPostCard(context, index);
-        },
-      ),
+        body: TabBarView(
+          children: [
+            // Tab 1: Publicaciones
+            ListView.builder(
+              itemCount: _posts.length + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) return _buildCreatePostWidget();
+                return _buildPostCard(context, index - 1);
+              },
+            ),
+            // Tab 2: Noticias
+            const NewsScreen(),
+          ],
+        ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProfileScreen(
+                onLogout: widget.onLogout ?? () {},
+              ),
+            ),
+          );
+        },
         backgroundColor: Theme.of(context).colorScheme.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.person, color: Colors.white),
+      ),
+    ));
+  }
+
+  Widget _buildCreatePostWidget() {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161C22),
+        border: Border(bottom: BorderSide(color: Colors.grey.shade800)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+            child: const Icon(Icons.person, color: Colors.blue),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _postController,
+                  maxLines: null,
+                  decoration: const InputDecoration(
+                    hintText: '¿Qué está pasando?',
+                    border: InputBorder.none,
+                    hintStyle: TextStyle(color: Colors.grey, fontSize: 18),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.image, color: Colors.blue),
+                          onPressed: () {},
+                        ),
+                      ],
+                    ),
+                    ElevatedButton(
+                      onPressed: _addPost,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: const Text('Publicar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -115,7 +230,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Este es el contenido de la publicación número $index. Aquí puedes compartir tus ideas, noticias y conectar con otros desarrolladores en ConnectNet.',
+              _posts[index]['content'] ?? 'Contenido vacío',
               style: const TextStyle(fontSize: 15, height: 1.4),
             ),
             const SizedBox(height: 16),
