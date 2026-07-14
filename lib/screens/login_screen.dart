@@ -108,7 +108,9 @@ class _LoginScreenState extends State<LoginScreen>
 
           final nameParts = _nameController.text.trim().split(' ');
           final nombres = nameParts.isNotEmpty ? nameParts.first : '';
-          final apellidos = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+          final apellidos = nameParts.length > 1
+              ? nameParts.sublist(1).join(' ')
+              : '';
 
           await supabase.schema('perfiles').from('perfil_unificado').insert({
             'user_id': user.id,
@@ -116,7 +118,8 @@ class _LoginScreenState extends State<LoginScreen>
             'nombres': nombres,
             'apellidos': apellidos,
             'correo': _emailController.text.trim(),
-            'pfp': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+            'pfp':
+                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
             'rating1e': 0,
             'rating1n': '',
             'rating2e': 0,
@@ -305,9 +308,18 @@ class _LoginScreenState extends State<LoginScreen>
                             prefixIcon: Icons.badge_outlined,
                           ),
                           items: const [
-                            DropdownMenuItem(value: 'estudiante', child: Text('Estudiante')),
-                            DropdownMenuItem(value: 'docente', child: Text('Docente')),
-                            DropdownMenuItem(value: 'egresado', child: Text('Egresado')),
+                            DropdownMenuItem(
+                              value: 'estudiante',
+                              child: Text('Estudiante'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'docente',
+                              child: Text('Docente'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'egresado',
+                              child: Text('Egresado'),
+                            ),
                           ],
                           onChanged: (value) {
                             if (value != null) {
@@ -509,11 +521,12 @@ class _LoginScreenState extends State<LoginScreen>
                             child: _buildSocialButton(
                               icon: Icons.g_mobiledata_rounded,
                               label: 'Google',
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Google Sign-in simulado'),
-                                  ),
+                              onPressed: () async {
+                                final supabase = Supabase.instance.client;
+                                await supabase.auth.signInWithOAuth(
+                                  OAuthProvider.google,
+                                  redirectTo:
+                                      'https://cjxgqskachxnvnsmwiaa.supabase.co/auth/v1/callback',
                                 );
                               },
                             ),
@@ -523,11 +536,12 @@ class _LoginScreenState extends State<LoginScreen>
                             child: _buildSocialButton(
                               icon: Icons.apple,
                               label: 'Apple',
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Apple Sign-in simulado'),
-                                  ),
+                              onPressed: () async {
+                                final supabase = Supabase.instance.client;
+                                await supabase.auth.signInWithOAuth(
+                                  OAuthProvider.apple,
+                                  redirectTo:
+                                      'https://cjxgqskachxnvnsmwiaa.supabase.co/auth/v1/callback',
                                 );
                               },
                             ),
