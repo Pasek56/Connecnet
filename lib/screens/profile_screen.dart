@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -23,7 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   String _profileName = 'Miguel Parada';
   final String _profileImageUrl =
       'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
-  File? _profileImageFile;
+  String? _profileImagePath;
 
   // Mocked list of tweets/posts with state (empty profile)
   final List<Map<String, dynamic>> _tweets = [];
@@ -155,55 +155,13 @@ class _ProfileScreenState extends State<ProfileScreen>
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
             SliverAppBar(
-              expandedHeight: 180.0,
               floating: false,
               pinned: true,
               backgroundColor: Colors.black,
               elevation: 0,
-              leading: CircleAvatar(
-                backgroundColor: Colors.black.withValues(alpha: 0.5),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
-              flexibleSpace: FlexibleSpaceBar(
-                collapseMode: CollapseMode.pin,
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Cover Image with nice gradient
-                    Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF1A2B49), Color(0xFF1DA1F2)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: Opacity(
-                        opacity: 0.4,
-                        child: Image.network(
-                          'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800',
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    // Dark overlay to ensure header text readability
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.3),
-                            Colors.black.withValues(alpha: 0.7),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
               ),
             ),
             SliverToBoxAdapter(
@@ -213,54 +171,50 @@ class _ProfileScreenState extends State<ProfileScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Profile Image and Edit Profile Button
-                    Stack(
-                      clipBehavior: Clip.none,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const SizedBox(height: 40),
-                        Positioned(
-                          top: -50,
-                          left: 0,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.black, width: 4),
-                            ),
-                            child: CircleAvatar(
-                              radius: 40,
-                              backgroundImage: _profileImageFile != null
-                                  ? FileImage(_profileImageFile!)
-                                        as ImageProvider
-                                  : NetworkImage(_profileImageUrl),
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.black, width: 4),
+                          ),
+                          child: ClipOval(
+                            child: SizedBox(
+                              width: 80,
+                              height: 80,
+                              child: Image.network(
+                                _profileImagePath ?? _profileImageUrl,
+                                fit: BoxFit.cover,
+                                width: 80,
+                                height: 80,
+                              ),
                             ),
                           ),
                         ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            OutlinedButton(
-                              onPressed: _showEditProfileDialog,
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(
-                                  color: Color(0xFF536471),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 8,
-                                ),
-                              ),
-                              child: const Text(
-                                'Editar perfil',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
+                        OutlinedButton(
+                          onPressed: _showEditProfileDialog,
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                              color: Color(0xFF536471),
                             ),
-                          ],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 8,
+                            ),
+                          ),
+                          child: const Text(
+                            'Editar perfil',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -380,7 +334,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   void _showEditProfileDialog() {
     final nameController = TextEditingController(text: _profileName);
-    File? selectedImage = _profileImageFile;
+    String? selectedImagePath = _profileImagePath;
 
     showDialog(
       context: context,
@@ -414,11 +368,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundImage: selectedImage != null
-                              ? FileImage(selectedImage!) as ImageProvider
-                              : NetworkImage(_profileImageUrl),
+                        ClipOval(
+                          child: SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: Image.network(
+                              selectedImagePath ?? _profileImageUrl,
+                              fit: BoxFit.cover,
+                              width: 48,
+                              height: 48,
+                            ),
+                          ),
                         ),
                         const SizedBox(width: 16),
                         ElevatedButton.icon(
@@ -432,7 +392,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             );
                             if (pickedFile != null) {
                               setStateDialog(() {
-                                selectedImage = File(pickedFile.path);
+                                selectedImagePath = pickedFile.path;
                               });
                             }
                           },
@@ -462,8 +422,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                   onPressed: () {
                     setState(() {
                       _profileName = nameController.text;
-                      if (selectedImage != null) {
-                        _profileImageFile = selectedImage;
+                      if (selectedImagePath != null) {
+                        _profileImagePath = selectedImagePath;
                       }
                     });
                     Navigator.pop(context);

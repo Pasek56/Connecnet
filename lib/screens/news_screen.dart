@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
@@ -94,11 +95,27 @@ class _NewsScreenState extends State<NewsScreen> {
           ),
           TextField(
             controller: _newsImageUrlController,
-            decoration: const InputDecoration(
-              hintText: 'URL de la imagen (opcional)...',
+            decoration: InputDecoration(
+              hintText: 'URL de la imagen o selecciona una...',
               border: InputBorder.none,
-              hintStyle: TextStyle(color: Colors.grey),
-              icon: Icon(Icons.image, color: Colors.blue, size: 20),
+              hintStyle: const TextStyle(color: Colors.grey),
+              icon: const Icon(Icons.image, color: Colors.blue, size: 20),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.photo_library, color: Colors.blue),
+                onPressed: () async {
+                  final picker = ImagePicker();
+                  final pickedFile = await picker.pickImage(
+                    source: ImageSource.gallery,
+                    imageQuality: 70,
+                    maxWidth: 800,
+                  );
+                  if (pickedFile != null) {
+                    setState(() {
+                      _newsImageUrlController.text = pickedFile.path;
+                    });
+                  }
+                },
+              ),
             ),
           ),
           const SizedBox(height: 8),
