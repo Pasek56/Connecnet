@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
+import 'news_detail_screen.dart';
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
 
@@ -158,8 +158,11 @@ class _NewsScreenState extends State<NewsScreen> {
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Abriendo noticia: ${news['title']}')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => NewsDetailScreen(news: news),
+                ),
               );
             },
             child: Column(

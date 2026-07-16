@@ -20,10 +20,11 @@ class _ProfileScreenState extends State<ProfileScreen>
   final _supabase = Supabase.instance.client;
 
   double _profileRating = 0.0;
-  String _profileName = 'Miguel Parada';
-  final String _profileImageUrl =
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
+  String _profileName = '';
+  String _profileImageUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
   String? _profileImagePath;
+  String _profileHandle = '';
+  String _profileBio = '';
 
   // Mocked list of tweets/posts with state (empty profile)
   final List<Map<String, dynamic>> _tweets = [];
@@ -33,6 +34,33 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _fetchProfile();
+  }
+
+  void _updateLocalProfileState(Map<String, dynamic> data) {
+    _profileName = '${data['nombres'] ?? ''} ${data['apellidos'] ?? ''}'.trim();
+    if (_profileName.isEmpty) _profileName = 'Usuario';
+    
+    if (data['pfp'] != null && data['pfp'].toString().isNotEmpty) {
+      _profileImageUrl = data['pfp'];
+    }
+
+    final handleName = data['nombres'] != null && data['nombres'].toString().isNotEmpty 
+        ? data['nombres'].toString().split(' ').first 
+        : 'User';
+    final handleLast = data['apellidos'] != null && data['apellidos'].toString().isNotEmpty 
+        ? data['apellidos'].toString().split(' ').first 
+        : '';
+    _profileHandle = '@${handleName}_$handleLast'.replaceAll(' ', '');
+
+    if (data['profile_type'] == 'estudiante') {
+      final semestre = data['semestre'] ?? 1;
+      _profileBio = 'Estudiante de $semestre Semestre.';
+    } else if (data['profile_type'] == 'profesional') {
+      final titulo = data['titulo'] ?? 'Profesional';
+      _profileBio = '$titulo';
+    } else {
+      _profileBio = 'Usuario de ConnectNet';
+    }
   }
 
   Future<void> _fetchProfile() async {
@@ -52,13 +80,11 @@ class _ProfileScreenState extends State<ProfileScreen>
         if (data != null) {
           setState(() {
             _profileData = data;
+            _updateLocalProfileState(data);
           });
         } else {
           // Si no existe, crear uno por defecto
-          final nameParts = (user.email ?? 'Usuario')
-              .split('@')
-              .first
-              .split('.');
+          final nameParts = (user.email ?? 'Usuario').split('@').first.split('.');
           final name = nameParts.first;
           final lastName = nameParts.length > 1 ? nameParts[1] : '';
 
@@ -68,31 +94,21 @@ class _ProfileScreenState extends State<ProfileScreen>
             'nombres': name,
             'apellidos': lastName,
             'correo': user.email ?? '',
-            'pfp':
-                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+            'pfp': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
             'semestre': 1,
             'experiencia': '',
             'preparador': 'N',
-            'rating1e': 0,
-            'rating1n': '',
-            'rating2e': 0,
-            'rating2n': '',
-            'rating3e': 0,
-            'rating3n': '',
-            'mater1': '',
-            'mater2': '',
-            'mater3': '',
-            'empleo1': '',
-            'empleo2': '',
-            'empleo3': '',
+            'rating1e': 0, 'rating1n': '',
+            'rating2e': 0, 'rating2n': '',
+            'rating3e': 0, 'rating3n': '',
+            'mater1': '', 'mater2': '', 'mater3': '',
+            'empleo1': '', 'empleo2': '', 'empleo3': '',
             'titulo': '',
           };
-          await _supabase
-              .schema('perfiles')
-              .from('perfil_unificado')
-              .insert(defaultProfile);
+          await _supabase.schema('perfiles').from('perfil_unificado').insert(defaultProfile);
           setState(() {
             _profileData = defaultProfile;
+            _updateLocalProfileState(defaultProfile);
           });
         }
       }
@@ -231,16 +247,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      '@Miguel_P',
-                      style: TextStyle(fontSize: 15, color: Color(0xFF71767B)),
+                    Text(
+                      _profileHandle,
+                      style: const TextStyle(fontSize: 15, color: Color(0xFF71767B)),
                     ),
                     const SizedBox(height: 12),
 
                     // Bio
-                    const Text(
-                      'Estudiante de 5to Semestre de informatica.',
-                      style: TextStyle(
+                    Text(
+                      _profileBio,
+                      style: const TextStyle(
                         fontSize: 15,
                         color: Colors.white,
                         height: 1.3,
@@ -333,7 +349,12 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showEditProfileDialog() {
-    final nameController = TextEditingController(text: _profileName);
+    final nombresController = TextEditingController(text: _profileData?['nombres'] ?? '');
+    final apellidosController = TextEditingController(text: _profileData?['apellidos'] ?? '');
+    String selectedType = _profileData?['profile_type'] ?? 'estudiante';
+    final semestreController = TextEditingController(text: (_profileData?['semestre'] ?? 1).toString());
+    final tituloController = TextEditingController(text: _profileData?['titulo'] ?? '');
+    
     String? selectedImagePath = _profileImagePath;
 
     showDialog(
@@ -352,19 +373,73 @@ class _ProfileScreenState extends State<ProfileScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
-                      controller: nameController,
+                      controller: nombresController,
                       style: const TextStyle(color: Colors.white),
                       decoration: const InputDecoration(
-                        labelText: 'Nombre',
+                        labelText: 'Nombres',
                         labelStyle: TextStyle(color: Colors.grey),
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.grey),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF1DA1F2)),
-                        ),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF1DA1F2))),
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: apellidosController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Apellidos',
+                        labelStyle: TextStyle(color: Colors.grey),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF1DA1F2))),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: ['estudiante', 'profesional'].contains(selectedType) ? selectedType : 'estudiante',
+                      dropdownColor: const Color(0xFF161C22),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Tipo de Perfil',
+                        labelStyle: TextStyle(color: Colors.grey),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF1DA1F2))),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'estudiante', child: Text('Estudiante')),
+                        DropdownMenuItem(value: 'profesional', child: Text('Profesional')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setStateDialog(() {
+                            selectedType = val;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    if (selectedType == 'estudiante')
+                      TextField(
+                        controller: semestreController,
+                        style: const TextStyle(color: Colors.white),
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Semestre (ej. 1, 5, 8)',
+                          labelStyle: TextStyle(color: Colors.grey),
+                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF1DA1F2))),
+                        ),
+                      )
+                    else if (selectedType == 'profesional')
+                      TextField(
+                        controller: tituloController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(
+                          labelText: 'Título o Profesión',
+                          labelStyle: TextStyle(color: Colors.grey),
+                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF1DA1F2))),
+                        ),
+                      ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
@@ -397,13 +472,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                             }
                           },
                           icon: const Icon(Icons.image, color: Colors.white),
-                          label: const Text(
-                            'Subir Foto',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2F3336),
-                          ),
+                          label: const Text('Subir Foto', style: TextStyle(color: Colors.white)),
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2F3336)),
                         ),
                       ],
                     ),
@@ -413,34 +483,48 @@ class _ProfileScreenState extends State<ProfileScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Cancelar',
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _profileName = nameController.text;
-                      if (selectedImagePath != null) {
-                        _profileImagePath = selectedImagePath;
+                  onPressed: () async {
+                    // Update DB logic
+                    final user = _supabase.auth.currentUser;
+                    if (user != null) {
+                      try {
+                        final updates = {
+                          'nombres': nombresController.text,
+                          'apellidos': apellidosController.text,
+                          'profile_type': selectedType,
+                          if (selectedType == 'estudiante') 'semestre': int.tryParse(semestreController.text) ?? 1,
+                          if (selectedType == 'profesional') 'titulo': tituloController.text,
+                        };
+                        
+                        await _supabase
+                            .schema('perfiles')
+                            .from('perfil_unificado')
+                            .update(updates)
+                            .eq('user_id', user.id);
+                        
+                        // Refetch profile to update state properly
+                        await _fetchProfile();
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                        }
                       }
-                    });
-                    Navigator.pop(context);
+                    }
+                    if (selectedImagePath != null) {
+                       setState(() {
+                         _profileImagePath = selectedImagePath;
+                       });
+                    }
+                    if (context.mounted) Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1DA1F2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
-                  child: const Text(
-                    'Guardar',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: const Text('Guardar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ],
             );

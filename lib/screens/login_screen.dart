@@ -148,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen>
                       : '¡Registro de cuenta y perfil exitoso!',
                   style: const TextStyle(color: Colors.white),
                 ),
-                backgroundColor: const Color(0xFF1DA1F2),
+                backgroundColor: const Color.fromARGB(255, 0, 47, 83),
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -239,11 +239,7 @@ class _LoginScreenState extends State<LoginScreen>
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
-                      BoxShadow(
-                        color: const Color(0xFF1DA1F2),
-                        blurRadius: 30,
-                        offset: const Offset(0, -5),
-                      ),
+                      BoxShadow(blurRadius: 30, offset: const Offset(0, -5)),
                     ],
                     border: Border.all(color: Colors.white, width: 1.0),
                   ),
