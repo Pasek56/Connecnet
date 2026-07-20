@@ -56,57 +56,81 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'ConnectNet',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          centerTitle: true,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          bottom: const TabBar(
-            indicatorColor: Color(0xFF1DA1F2),
-            indicatorWeight: 3,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.grey,
-            tabs: [
-              Tab(text: 'Publicaciones'),
-              Tab(text: 'Noticias'),
-            ],
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'ConnectNet',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        body: TabBarView(
-          children: [
-            // Tab 1: Publicaciones
-            ListView.builder(
-              itemCount: _posts.length + 1,
-              itemBuilder: (context, index) {
-                if (index == 0) return _buildCreatePostWidget();
-                return _buildPostCard(context, index - 1);
-              },
-            ),
-            // Tab 2: Noticias
-            const NewsScreen(),
-          ],
-        ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProfileScreen(
-                onLogout: widget.onLogout ?? () {},
-              ),
-            ),
-          );
-        },
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        child: const Icon(Icons.person, color: Colors.white),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-    ));
+      body: ListView.builder(
+        itemCount: _posts.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) return _buildCreatePostWidget();
+          return _buildPostCard(context, index - 1);
+        },
+      ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: 'newsBtn',
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) {
+                  return Container(
+                    height: MediaQuery.of(context).size.height * 0.8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF161C22),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 12),
+                        Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade600,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Expanded(child: NewsScreen()),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+            backgroundColor: const Color(0xFF1DA1F2),
+            child: const Icon(Icons.article, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            heroTag: 'profileBtn',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProfileScreen(
+                    onLogout: widget.onLogout ?? () {},
+                  ),
+                ),
+              );
+            },
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            child: const Icon(Icons.person, color: Colors.white),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildCreatePostWidget() {
