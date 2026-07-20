@@ -107,33 +107,59 @@ class _LoginScreenState extends State<LoginScreen>
           }
 
           final nameParts = _nameController.text.trim().split(' ');
-          final nombres = nameParts.isNotEmpty ? nameParts.first : '';
-          final apellidos = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+          final firstName = nameParts.isNotEmpty ? nameParts.first : '';
+          final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+          final email = _emailController.text.trim();
+          const defaultPfp = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
 
-          await supabase.schema('perfiles').from('perfil_unificado').insert({
+          // Build the insert map based on profile type with correct column names
+          final Map<String, dynamic> profileData = {
             'user_id': user.id,
             'profile_type': _selectedProfileType,
-            'nombres': nombres,
-            'apellidos': apellidos,
-            'correo': _emailController.text.trim(),
-            'pfp': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
-            'rating1e': 0,
-            'rating1n': '',
-            'rating2e': 0,
-            'rating2n': '',
-            'rating3e': 0,
-            'rating3n': '',
-            'semestre': _selectedProfileType == 'estudiante' ? 1 : null,
-            'experiencia': '',
-            'preparador': 'N',
-            'mater1': '',
-            'mater2': '',
-            'mater3': '',
-            'empleo1': '',
-            'empleo2': '',
-            'empleo3': '',
-            'titulo': '',
-          });
+            'pfp': defaultPfp,
+          };
+
+          switch (_selectedProfileType) {
+            case 'estudiante':
+              profileData.addAll({
+                'nombres': firstName,
+                'apellidos': lastName,
+                'correo': email,
+                'rating1e': 0,
+                'rating1n': '',
+                'rating2e': 0,
+                'rating2n': '',
+                'rating3e': 0,
+                'rating3n': '',
+                'semestre': 1,
+                'experiencia': '',
+                'preparador': 'N',
+              });
+              break;
+            case 'docente':
+              profileData.addAll({
+                'nombres_prof': firstName,
+                'apellidos_prof': lastName,
+                'correo_prof': email,
+                'mater1': '',
+                'mater2': '',
+                'mater3': '',
+              });
+              break;
+            case 'egresado':
+              profileData.addAll({
+                'nombres_pro': firstName,
+                'apellidos_pro': lastName,
+                'correo_pro': email,
+                'empleo1': '',
+                'empleo2': '',
+                'empleo3': '',
+                'titulo': '',
+              });
+              break;
+          }
+
+          await supabase.schema('perfiles').from('perfil_unificado').insert(profileData);
 
           if (mounted) {
             final needsConfirmation = response.session == null;
@@ -297,7 +323,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
-                          value: _selectedProfileType,
+                          initialValue: _selectedProfileType,
                           dropdownColor: const Color(0xFF15181C),
                           style: const TextStyle(color: Colors.white),
                           decoration: _buildInputDecoration(

@@ -27,6 +27,122 @@ class _ProfileScreenState extends State<ProfileScreen>
     _fetchProfile();
   }
 
+  // --- Helper methods to resolve correct column names per profile_type ---
+
+  String _getDisplayName() {
+    if (_profileData == null) return 'Usuario';
+    final type = _profileData!['profile_type'] ?? 'estudiante';
+    switch (type) {
+      case 'docente':
+        final nombres = _profileData!['nombres_prof'] ?? '';
+        final apellidos = _profileData!['apellidos_prof'] ?? '';
+        return '$nombres $apellidos'.trim();
+      case 'egresado':
+        final nombres = _profileData!['nombres_pro'] ?? '';
+        final apellidos = _profileData!['apellidos_pro'] ?? '';
+        return '$nombres $apellidos'.trim();
+      default: // estudiante
+        final nombres = _profileData!['nombres'] ?? '';
+        final apellidos = _profileData!['apellidos'] ?? '';
+        return '$nombres $apellidos'.trim();
+    }
+  }
+
+  String _getEmail() {
+    if (_profileData == null) return '';
+    final type = _profileData!['profile_type'] ?? 'estudiante';
+    switch (type) {
+      case 'docente':
+        return _profileData!['correo_prof'] ?? '';
+      case 'egresado':
+        return _profileData!['correo_pro'] ?? '';
+      default:
+        return _profileData!['correo'] ?? '';
+    }
+  }
+
+  String _getHandle() {
+    final email = _getEmail();
+    if (email.contains('@')) {
+      return '@${email.split('@').first}';
+    }
+    final name = _getDisplayName().replaceAll(' ', '_');
+    return '@$name';
+  }
+
+  String _getProfilePicUrl() {
+    return _profileData?['pfp'] ??
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
+  }
+
+  String _getBio() {
+    if (_profileData == null) return '';
+    final type = _profileData!['profile_type'] ?? 'estudiante';
+    switch (type) {
+      case 'estudiante':
+        final semestre = _profileData!['semestre'] ?? '';
+        final exp = _profileData!['experiencia'] ?? '';
+        final preparador = _profileData!['preparador'] == 'S' ? ' | Preparador' : '';
+        return 'Estudiante de semestre $semestre$preparador${exp.toString().isNotEmpty ? '\n$exp' : ''}'.trim();
+      case 'docente':
+        final materias = [
+          _profileData!['mater1'],
+          _profileData!['mater2'],
+          _profileData!['mater3'],
+        ].where((m) => m != null && m.toString().isNotEmpty).toList();
+        return 'Docente${materias.isNotEmpty ? '\nMaterias: ${materias.join(', ')}' : ''}'.trim();
+      case 'egresado':
+        final titulo = _profileData!['titulo'] ?? '';
+        final empleos = [
+          _profileData!['empleo1'],
+          _profileData!['empleo2'],
+          _profileData!['empleo3'],
+        ].where((e) => e != null && e.toString().isNotEmpty).toList();
+        return 'Egresado${titulo.toString().isNotEmpty ? ' | $titulo' : ''}${empleos.isNotEmpty ? '\nExperiencia: ${empleos.join(', ')}' : ''}'.trim();
+      default:
+        return '';
+    }
+  }
+
+  String _getProfileTypeLabel() {
+    switch (_profileData?['profile_type']) {
+      case 'docente':
+        return 'Docente';
+      case 'egresado':
+        return 'Egresado';
+      default:
+        return 'Estudiante';
+    }
+  }
+
+  // --- Build default profile data with correct columns per type ---
+
+  Map<String, dynamic> _buildDefaultProfile(String userId, String email) {
+    final nameParts = email.split('@').first.split('.');
+    final name = nameParts.first;
+    final lastName = nameParts.length > 1 ? nameParts[1] : '';
+
+    // Default to estudiante for fallback profile creation
+    return {
+      'user_id': userId,
+      'profile_type': 'estudiante',
+      'nombres': name,
+      'apellidos': lastName,
+      'correo': email,
+      'pfp':
+          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+      'semestre': 1,
+      'experiencia': '',
+      'preparador': 'N',
+      'rating1e': 0,
+      'rating1n': '',
+      'rating2e': 0,
+      'rating2n': '',
+      'rating3e': 0,
+      'rating3n': '',
+    };
+  }
+
   Future<void> _fetchProfile() async {
     setState(() {
       _isLoading = true;
@@ -47,35 +163,12 @@ class _ProfileScreenState extends State<ProfileScreen>
           });
         } else {
           // Si no existe, crear uno por defecto
-          final nameParts = (user.email ?? 'Usuario').split('@').first.split('.');
-          final name = nameParts.first;
-          final lastName = nameParts.length > 1 ? nameParts[1] : '';
-
-          final defaultProfile = {
-            'user_id': user.id,
-            'profile_type': 'estudiante',
-            'nombres': name,
-            'apellidos': lastName,
-            'correo': user.email ?? '',
-            'pfp': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
-            'semestre': 1,
-            'experiencia': '',
-            'preparador': 'N',
-            'rating1e': 0,
-            'rating1n': '',
-            'rating2e': 0,
-            'rating2n': '',
-            'rating3e': 0,
-            'rating3n': '',
-            'mater1': '',
-            'mater2': '',
-            'mater3': '',
-            'empleo1': '',
-            'empleo2': '',
-            'empleo3': '',
-            'titulo': '',
-          };
-          await _supabase.schema('perfiles').from('perfil_unificado').insert(defaultProfile);
+          final defaultProfile =
+              _buildDefaultProfile(user.id, user.email ?? 'usuario@unet.edu.ve');
+          await _supabase
+              .schema('perfiles')
+              .from('perfil_unificado')
+              .insert(defaultProfile);
           setState(() {
             _profileData = defaultProfile;
           });
@@ -133,6 +226,24 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Show a loading indicator while profile is being fetched
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF1DA1F2),
+          ),
+        ),
+      );
+    }
+
+    final displayName = _getDisplayName();
+    final handle = _getHandle();
+    final bio = _getBio();
+    final pfpUrl = _getProfilePicUrl();
+    final profileTypeLabel = _getProfileTypeLabel();
+
     return Scaffold(
       backgroundColor:
           Colors.black, // True black background for modern Twitter/X dark mode
@@ -221,11 +332,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.black, width: 4),
                             ),
-                            child: const CircleAvatar(
+                            child: CircleAvatar(
                               radius: 40,
-                              backgroundImage: NetworkImage(
-                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
-                              ),
+                              backgroundImage: NetworkImage(pfpUrl),
                             ),
                           ),
                         ),
@@ -270,10 +379,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     const SizedBox(height: 12),
 
-                    // User Info
-                    const Text(
-                      'Miguel Parada',
-                      style: TextStyle(
+                    // User Info — dynamic from _profileData
+                    Text(
+                      displayName.isNotEmpty ? displayName : 'Usuario',
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
@@ -281,34 +390,33 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      '@Miguel_P',
-                      style: TextStyle(fontSize: 15, color: Color(0xFF71767B)),
+                    Text(
+                      handle,
+                      style: const TextStyle(
+                          fontSize: 15, color: Color(0xFF71767B)),
                     ),
                     const SizedBox(height: 12),
 
-                    // Bio
-                    const Text(
-                      'Estudiante de 5to Semestre de informatica.',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.white,
-                        height: 1.3,
+                    // Bio — dynamic from profile data
+                    if (bio.isNotEmpty)
+                      Text(
+                        bio,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: Colors.white,
+                          height: 1.3,
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 12),
 
-                    // Metadata details (Location, website, joined date)
+                    // Metadata details (Profile type badge, location, joined date)
                     Wrap(
                       spacing: 16,
                       runSpacing: 8,
                       children: [
-                        _buildMetaItem(Icons.location_on_outlined, 'Venezuela'),
+                        _buildMetaItem(Icons.badge_outlined, profileTypeLabel),
                         _buildMetaItem(
-                          Icons.link_rounded,
-                          'Connecnet.dev',
-                          isLink: true,
-                        ),
+                            Icons.location_on_outlined, 'Venezuela'),
                         _buildMetaItem(
                           Icons.calendar_today_outlined,
                           'Se unió en junio de 2026',
