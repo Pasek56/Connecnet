@@ -529,7 +529,6 @@ class _LoginScreenState extends State<LoginScreen>
                           ],
                         ),
                         const SizedBox(height: 24),
-
                         // Social Login
                         Row(
                           children: [
@@ -541,21 +540,6 @@ class _LoginScreenState extends State<LoginScreen>
                                   final supabase = Supabase.instance.client;
                                   await supabase.auth.signInWithOAuth(
                                     OAuthProvider.google,
-                                    redirectTo:
-                                        'https://cjxgqskachxnvnsmwiaa.supabase.co/auth/v1/callback',
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildSocialButton(
-                                icon: Icons.apple,
-                                label: 'Apple',
-                                onPressed: () async {
-                                  final supabase = Supabase.instance.client;
-                                  await supabase.auth.signInWithOAuth(
-                                    OAuthProvider.apple,
                                     redirectTo:
                                         'https://cjxgqskachxnvnsmwiaa.supabase.co/auth/v1/callback',
                                   );
