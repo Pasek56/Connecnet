@@ -147,61 +147,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  void _updateLocalProfileState(Map<String, dynamic> data) {
-    final profileType = data['profile_type'] ?? 'estudiante';
-
-    switch (profileType) {
-      case 'docente':
-        _profileName =
-            '${data['nombres_prof'] ?? ''} ${data['apellidos_prof'] ?? ''}'
-                .trim();
-        _profileHandle = (data['correo_prof'] ?? '')
-            .toString()
-            .split('@')
-            .first;
-        _profileBio = [
-          data['mater1'],
-          data['mater2'],
-          data['mater3'],
-        ].where((m) => m != null && m.toString().isNotEmpty).join(', ');
-        if (_profileBio.isNotEmpty) {
-          _profileBio = 'Materias: $_profileBio';
-        }
-        break;
-      case 'egresado':
-        _profileName =
-            '${data['nombres_pro'] ?? ''} ${data['apellidos_pro'] ?? ''}'
-                .trim();
-        _profileHandle = (data['correo_pro'] ?? '').toString().split('@').first;
-        _profileBio = data['titulo'] ?? '';
-        break;
-      default: // estudiante
-        _profileName = '${data['nombres'] ?? ''} ${data['apellidos'] ?? ''}'
-            .trim();
-        _profileHandle = (data['correo'] ?? '').toString().split('@').first;
-        final semestre = data['semestre'] ?? '';
-        final experiencia = data['experiencia'] ?? '';
-        _profileBio = 'Semestre: $semestre';
-        if (experiencia.toString().isNotEmpty) {
-          _profileBio += ' · $experiencia';
-        }
-        break;
-    }
-
-    if (_profileName.isEmpty) _profileName = 'Usuario';
-    if (_profileHandle.isEmpty) _profileHandle = 'usuario';
-
-    _profileImageUrl =
-        data['pfp'] ??
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
-
-    // Load existing rating
-    final rating1 = data['rating1e'];
-    if (rating1 != null && rating1 is num && rating1 > 0) {
-      _profileRating = rating1.toDouble();
-    }
-  }
-
   String _getDisplayName() {
     return _profileName.isNotEmpty ? _profileName : 'Usuario';
   }
