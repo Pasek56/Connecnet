@@ -21,7 +21,8 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   double _profileRating = 0.0;
   String _profileName = '';
-  String _profileImageUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
+  String _profileImageUrl =
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
   String? _profileImagePath;
   String _profileHandle = '';
   String _profileBio = '';
@@ -39,16 +40,18 @@ class _ProfileScreenState extends State<ProfileScreen>
   void _updateLocalProfileState(Map<String, dynamic> data) {
     _profileName = '${data['nombres'] ?? ''} ${data['apellidos'] ?? ''}'.trim();
     if (_profileName.isEmpty) _profileName = 'Usuario';
-    
+
     if (data['pfp'] != null && data['pfp'].toString().isNotEmpty) {
       _profileImageUrl = data['pfp'];
     }
 
-    final handleName = data['nombres'] != null && data['nombres'].toString().isNotEmpty 
-        ? data['nombres'].toString().split(' ').first 
+    final handleName =
+        data['nombres'] != null && data['nombres'].toString().isNotEmpty
+        ? data['nombres'].toString().split(' ').first
         : 'User';
-    final handleLast = data['apellidos'] != null && data['apellidos'].toString().isNotEmpty 
-        ? data['apellidos'].toString().split(' ').first 
+    final handleLast =
+        data['apellidos'] != null && data['apellidos'].toString().isNotEmpty
+        ? data['apellidos'].toString().split(' ').first
         : '';
     _profileHandle = '@${handleName}_$handleLast'.replaceAll(' ', '');
 
@@ -84,7 +87,10 @@ class _ProfileScreenState extends State<ProfileScreen>
           });
         } else {
           // Si no existe, crear uno por defecto
-          final nameParts = (user.email ?? 'Usuario').split('@').first.split('.');
+          final nameParts = (user.email ?? 'Usuario')
+              .split('@')
+              .first
+              .split('.');
           final name = nameParts.first;
           final lastName = nameParts.length > 1 ? nameParts[1] : '';
 
@@ -94,18 +100,29 @@ class _ProfileScreenState extends State<ProfileScreen>
             'nombres': name,
             'apellidos': lastName,
             'correo': user.email ?? '',
-            'pfp': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+            'pfp':
+                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
             'semestre': 1,
             'experiencia': '',
             'preparador': 'N',
-            'rating1e': 0, 'rating1n': '',
-            'rating2e': 0, 'rating2n': '',
-            'rating3e': 0, 'rating3n': '',
-            'mater1': '', 'mater2': '', 'mater3': '',
-            'empleo1': '', 'empleo2': '', 'empleo3': '',
+            'rating1e': 0,
+            'rating1n': '',
+            'rating2e': 0,
+            'rating2n': '',
+            'rating3e': 0,
+            'rating3n': '',
+            'mater1': '',
+            'mater2': '',
+            'mater3': '',
+            'empleo1': '',
+            'empleo2': '',
+            'empleo3': '',
             'titulo': '',
           };
-          await _supabase.schema('perfiles').from('perfil_unificado').insert(defaultProfile);
+          await _supabase
+              .schema('perfiles')
+              .from('perfil_unificado')
+              .insert(defaultProfile);
           setState(() {
             _profileData = defaultProfile;
             _updateLocalProfileState(defaultProfile);
@@ -127,6 +144,89 @@ class _ProfileScreenState extends State<ProfileScreen>
           _isLoading = false;
         });
       }
+    }
+  }
+
+  void _updateLocalProfileState(Map<String, dynamic> data) {
+    final profileType = data['profile_type'] ?? 'estudiante';
+
+    switch (profileType) {
+      case 'docente':
+        _profileName =
+            '${data['nombres_prof'] ?? ''} ${data['apellidos_prof'] ?? ''}'
+                .trim();
+        _profileHandle = (data['correo_prof'] ?? '')
+            .toString()
+            .split('@')
+            .first;
+        _profileBio = [
+          data['mater1'],
+          data['mater2'],
+          data['mater3'],
+        ].where((m) => m != null && m.toString().isNotEmpty).join(', ');
+        if (_profileBio.isNotEmpty) {
+          _profileBio = 'Materias: $_profileBio';
+        }
+        break;
+      case 'egresado':
+        _profileName =
+            '${data['nombres_pro'] ?? ''} ${data['apellidos_pro'] ?? ''}'
+                .trim();
+        _profileHandle = (data['correo_pro'] ?? '').toString().split('@').first;
+        _profileBio = data['titulo'] ?? '';
+        break;
+      default: // estudiante
+        _profileName = '${data['nombres'] ?? ''} ${data['apellidos'] ?? ''}'
+            .trim();
+        _profileHandle = (data['correo'] ?? '').toString().split('@').first;
+        final semestre = data['semestre'] ?? '';
+        final experiencia = data['experiencia'] ?? '';
+        _profileBio = 'Semestre: $semestre';
+        if (experiencia.toString().isNotEmpty) {
+          _profileBio += ' · $experiencia';
+        }
+        break;
+    }
+
+    if (_profileName.isEmpty) _profileName = 'Usuario';
+    if (_profileHandle.isEmpty) _profileHandle = 'usuario';
+
+    _profileImageUrl =
+        data['pfp'] ??
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
+
+    // Load existing rating
+    final rating1 = data['rating1e'];
+    if (rating1 != null && rating1 is num && rating1 > 0) {
+      _profileRating = rating1.toDouble();
+    }
+  }
+
+  String _getDisplayName() {
+    return _profileName.isNotEmpty ? _profileName : 'Usuario';
+  }
+
+  String _getHandle() {
+    return _profileHandle.isNotEmpty ? _profileHandle : 'usuario';
+  }
+
+  String _getBio() {
+    return _profileBio.isNotEmpty ? _profileBio : 'Sin biografía aún.';
+  }
+
+  String _getProfilePicUrl() {
+    return _profileImagePath ?? _profileImageUrl;
+  }
+
+  String _getProfileTypeLabel() {
+    final type = _profileData?['profile_type'] ?? 'estudiante';
+    switch (type) {
+      case 'docente':
+        return 'Docente';
+      case 'egresado':
+        return 'Egresado';
+      default:
+        return 'Estudiante';
     }
   }
 
@@ -164,6 +264,22 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Show a loading indicator while profile is being fetched
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF1DA1F2)),
+        ),
+      );
+    }
+
+    final displayName = _getDisplayName();
+    final handle = _getHandle();
+    final bio = _getBio();
+    final pfpUrl = _getProfilePicUrl();
+    final profileTypeLabel = _getProfileTypeLabel();
+
     return Scaffold(
       backgroundColor:
           Colors.black, // True black background for modern Twitter/X dark mode
@@ -196,25 +312,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.black, width: 4),
                           ),
-                          child: ClipOval(
-                            child: SizedBox(
-                              width: 80,
-                              height: 80,
-                              child: Image.network(
-                                _profileImagePath ?? _profileImageUrl,
-                                fit: BoxFit.cover,
-                                width: 80,
-                                height: 80,
-                              ),
-                            ),
+                          child: CircleAvatar(
+                            radius: 40,
+                            backgroundImage: NetworkImage(pfpUrl),
                           ),
                         ),
                         OutlinedButton(
                           onPressed: _showEditProfileDialog,
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              color: Color(0xFF536471),
-                            ),
+                            side: const BorderSide(color: Color(0xFF536471)),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -238,7 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                     // User Info
                     Text(
-                      _profileName,
+                      displayName,
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
@@ -248,14 +354,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _profileHandle,
-                      style: const TextStyle(fontSize: 15, color: Color(0xFF71767B)),
+                      '@$handle',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF71767B),
+                      ),
                     ),
                     const SizedBox(height: 12),
 
                     // Bio
                     Text(
-                      _profileBio,
+                      bio,
                       style: const TextStyle(
                         fontSize: 15,
                         color: Colors.white,
@@ -264,17 +373,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     const SizedBox(height: 12),
 
-                    // Metadata details (Location, website, joined date)
+                    // Metadata details (Profile type badge, location, joined date)
                     Wrap(
                       spacing: 16,
                       runSpacing: 8,
                       children: [
+                        _buildMetaItem(Icons.badge_outlined, profileTypeLabel),
                         _buildMetaItem(Icons.location_on_outlined, 'Venezuela'),
-                        _buildMetaItem(
-                          Icons.link_rounded,
-                          'Connecnet.dev',
-                          isLink: true,
-                        ),
                         _buildMetaItem(
                           Icons.calendar_today_outlined,
                           'Se unió en junio de 2026',
@@ -349,12 +454,20 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showEditProfileDialog() {
-    final nombresController = TextEditingController(text: _profileData?['nombres'] ?? '');
-    final apellidosController = TextEditingController(text: _profileData?['apellidos'] ?? '');
+    final nombresController = TextEditingController(
+      text: _profileData?['nombres'] ?? '',
+    );
+    final apellidosController = TextEditingController(
+      text: _profileData?['apellidos'] ?? '',
+    );
     String selectedType = _profileData?['profile_type'] ?? 'estudiante';
-    final semestreController = TextEditingController(text: (_profileData?['semestre'] ?? 1).toString());
-    final tituloController = TextEditingController(text: _profileData?['titulo'] ?? '');
-    
+    final semestreController = TextEditingController(
+      text: (_profileData?['semestre'] ?? 1).toString(),
+    );
+    final tituloController = TextEditingController(
+      text: _profileData?['titulo'] ?? '',
+    );
+
     String? selectedImagePath = _profileImagePath;
 
     showDialog(
@@ -378,8 +491,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                       decoration: const InputDecoration(
                         labelText: 'Nombres',
                         labelStyle: TextStyle(color: Colors.grey),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF1DA1F2))),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF1DA1F2)),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -389,24 +506,41 @@ class _ProfileScreenState extends State<ProfileScreen>
                       decoration: const InputDecoration(
                         labelText: 'Apellidos',
                         labelStyle: TextStyle(color: Colors.grey),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF1DA1F2))),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF1DA1F2)),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: ['estudiante', 'profesional'].contains(selectedType) ? selectedType : 'estudiante',
+                      initialValue:
+                          ['estudiante', 'profesional'].contains(selectedType)
+                          ? selectedType
+                          : 'estudiante',
                       dropdownColor: const Color(0xFF161C22),
                       style: const TextStyle(color: Colors.white),
                       decoration: const InputDecoration(
                         labelText: 'Tipo de Perfil',
                         labelStyle: TextStyle(color: Colors.grey),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF1DA1F2))),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF1DA1F2)),
+                        ),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'estudiante', child: Text('Estudiante')),
-                        DropdownMenuItem(value: 'profesional', child: Text('Profesional')),
+                        DropdownMenuItem(
+                          value: 'estudiante',
+                          child: Text('Estudiante'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'profesional',
+                          child: Text('Profesional'),
+                        ),
                       ],
                       onChanged: (val) {
                         if (val != null) {
@@ -425,8 +559,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                         decoration: const InputDecoration(
                           labelText: 'Semestre (ej. 1, 5, 8)',
                           labelStyle: TextStyle(color: Colors.grey),
-                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF1DA1F2))),
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF1DA1F2)),
+                          ),
                         ),
                       )
                     else if (selectedType == 'profesional')
@@ -436,8 +574,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                         decoration: const InputDecoration(
                           labelText: 'Título o Profesión',
                           labelStyle: TextStyle(color: Colors.grey),
-                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF1DA1F2))),
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF1DA1F2)),
+                          ),
                         ),
                       ),
                     const SizedBox(height: 16),
@@ -472,8 +614,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                             }
                           },
                           icon: const Icon(Icons.image, color: Colors.white),
-                          label: const Text('Subir Foto', style: TextStyle(color: Colors.white)),
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2F3336)),
+                          label: const Text(
+                            'Subir Foto',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2F3336),
+                          ),
                         ),
                       ],
                     ),
@@ -483,7 +630,10 @@ class _ProfileScreenState extends State<ProfileScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -495,36 +645,49 @@ class _ProfileScreenState extends State<ProfileScreen>
                           'nombres': nombresController.text,
                           'apellidos': apellidosController.text,
                           'profile_type': selectedType,
-                          if (selectedType == 'estudiante') 'semestre': int.tryParse(semestreController.text) ?? 1,
-                          if (selectedType == 'profesional') 'titulo': tituloController.text,
+                          if (selectedType == 'estudiante')
+                            'semestre':
+                                int.tryParse(semestreController.text) ?? 1,
+                          if (selectedType == 'profesional')
+                            'titulo': tituloController.text,
                         };
-                        
+
                         await _supabase
                             .schema('perfiles')
                             .from('perfil_unificado')
                             .update(updates)
                             .eq('user_id', user.id);
-                        
+
                         // Refetch profile to update state properly
                         await _fetchProfile();
                       } catch (e) {
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text('Error: $e')));
                         }
                       }
                     }
                     if (selectedImagePath != null) {
-                       setState(() {
-                         _profileImagePath = selectedImagePath;
-                       });
+                      setState(() {
+                        _profileImagePath = selectedImagePath;
+                      });
                     }
                     if (context.mounted) Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1DA1F2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
-                  child: const Text('Guardar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Guardar',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             );
@@ -569,9 +732,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           onPressed: () {
             if (_profileRated) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
+                const SnackBar(
                   content: Text('Ya has calificado este perfil'),
-                  backgroundColor: const Color(0xFF1DA1F2),
+                  backgroundColor: Color(0xFF1DA1F2),
                 ),
               );
               return;
@@ -811,7 +974,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: Colors.blue.withOpacity(0.2),
+                    backgroundColor: Colors.blue.withValues(alpha: 0.2),
                     child: const Text(
                       'M',
                       style: TextStyle(

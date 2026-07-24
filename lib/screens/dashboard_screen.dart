@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'profile_screen.dart';
 import 'news_screen.dart';
 
@@ -13,15 +15,19 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final TextEditingController _postController = TextEditingController();
+  final _supabase = Supabase.instance.client;
 
-  final List<Map<String, dynamic>> _posts = List.generate(
-    5,
-    (index) => {
-      'content': 'Este es el contenido de la publicación número $index. Aquí puedes compartir tus ideas, noticias y conectar con otros desarrolladores en ConnectNet.',
-      'likes': (index + 1) * 7,
-      'isLiked': false,
-    },
-  );
+  bool _isLoading = true;
+  bool _isPosting = false;
+  String? _selectedImagePath;
+  Map<String, dynamic>? _userProfile;
+  List<Map<String, dynamic>> _encargos = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
   @override
   void dispose() {
@@ -29,111 +35,245 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  void _addPost() {
-    if (_postController.text.isNotEmpty) {
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
+    await _fetchUserProfile();
+    await _fetchEncargos();
+    if (mounted) {
       setState(() {
-        _posts.insert(0, {
-          'content': _postController.text,
-          'likes': 0,
-          'isLiked': false,
-        });
-        _postController.clear();
+        _isLoading = false;
       });
     }
   }
 
-  void _toggleLike(int index) {
-    setState(() {
-      if (_posts[index]['isLiked']) {
-        _posts[index]['likes']--;
-        _posts[index]['isLiked'] = false;
-      } else {
-        _posts[index]['likes']++;
-        _posts[index]['isLiked'] = true;
+  Future<void> _fetchUserProfile() async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user != null) {
+        final profile = await _supabase
+            .schema('perfiles')
+            .from('perfil_unificado')
+            .select()
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (profile != null) {
+          _userProfile = profile;
+        }
       }
+    } catch (e) {
+      debugPrint('Error al cargar perfil del usuario: $e');
+    }
+  }
+
+  Future<void> _fetchEncargos() async {
+    try {
+      final response = await _supabase
+          .schema('publicaciones')
+          .from('encargo')
+          .select('*, comentarios:comentarios(count)')
+          .order('id_enc', ascending: false);
+
+      List<Map<String, dynamic>> encargos = List<Map<String, dynamic>>.from(
+        response,
+      );
+
+      // Extraer IDs únicos de remitentes
+      final senderIds = encargos
+          .map((e) => e['sender_profile_id'])
+          .where((id) => id != null)
+          .toSet()
+          .toList();
+
+      if (senderIds.isNotEmpty) {
+        // Buscar perfiles
+        final profilesResponse = await _supabase
+            .schema('perfiles')
+            .from('perfil_unificado')
+            .select()
+            .filter('id', 'in', senderIds);
+
+        final profiles = List<Map<String, dynamic>>.from(profilesResponse);
+        final profileMap = {for (var p in profiles) p['id']: p};
+
+        // Asociar perfiles a los encargos
+        for (var encargo in encargos) {
+          final senderId = encargo['sender_profile_id'];
+          if (senderId != null) {
+            encargo['sender'] = profileMap[senderId];
+          }
+        }
+      }
+
+      setState(() {
+        _encargos = encargos;
+      });
+    } catch (e) {
+      debugPrint('Error al cargar encargos: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar publicaciones: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _addPost() async {
+    final content = _postController.text.trim();
+    if (content.isEmpty) return;
+
+    if (_userProfile == null) {
+      await _fetchUserProfile();
+    }
+
+    setState(() {
+      _isPosting = true;
     });
+
+    try {
+      final profileId = _userProfile?['id'];
+      final profileType = _userProfile?['profile_type'] ?? 'estudiante';
+
+      await _supabase.schema('publicaciones').from('encargo').insert({
+        'desc_enc': content,
+        'img_enc': _selectedImagePath ?? '',
+        'sender_profile_id': profileId,
+        'sender_profile_type': profileType,
+      });
+
+      _postController.clear();
+      setState(() {
+        _selectedImagePath = null;
+      });
+
+      await _fetchEncargos();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('¡Publicación realizada con éxito!'),
+            backgroundColor: Color(0xFF1DA1F2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al publicar: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPosting = false;
+        });
+      }
+    }
+  }
+
+  String _getSenderName(Map<String, dynamic>? sender) {
+    if (sender == null) return 'Usuario';
+    final type = sender['profile_type'] ?? 'estudiante';
+    if (type == 'docente') {
+      final name =
+          '${sender['nombres_prof'] ?? ''} ${sender['apellidos_prof'] ?? ''}'
+              .trim();
+      return name.isNotEmpty ? name : 'Docente';
+    } else if (type == 'egresado') {
+      final name =
+          '${sender['nombres_pro'] ?? ''} ${sender['apellidos_pro'] ?? ''}'
+              .trim();
+      return name.isNotEmpty ? name : 'Egresado';
+    } else {
+      final name = '${sender['nombres'] ?? ''} ${sender['apellidos'] ?? ''}'
+          .trim();
+      return name.isNotEmpty ? name : 'Estudiante';
+    }
+  }
+
+  String _getSenderPfp(Map<String, dynamic>? sender) {
+    final pfp = sender?['pfp'];
+    if (pfp != null && pfp.toString().isNotEmpty) {
+      return pfp.toString();
+    }
+    return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'ConnectNet',
-          style: TextStyle(fontWeight: FontWeight.bold),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'ConnectNet',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          bottom: const TabBar(
+            indicatorColor: Color(0xFF1DA1F2),
+            indicatorWeight: 3,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.grey,
+            tabs: [
+              Tab(text: 'Publicaciones'),
+              Tab(text: 'Noticias'),
+            ],
+          ),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: ListView.builder(
-        itemCount: _posts.length + 1,
-        itemBuilder: (context, index) {
-          if (index == 0) return _buildCreatePostWidget();
-          return _buildPostCard(context, index - 1);
-        },
-      ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton(
-            heroTag: 'newsBtn',
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (context) {
-                  return Container(
-                    height: MediaQuery.of(context).size.height * 0.8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF161C22),
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        body: TabBarView(
+          children: [
+            // Tab 1: Publicaciones (Encargos)
+            RefreshIndicator(
+              onRefresh: _fetchEncargos,
+              color: const Color(0xFF1DA1F2),
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF1DA1F2),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _encargos.length + 1,
+                      itemBuilder: (context, index) {
+                        if (index == 0) return _buildCreatePostWidget();
+                        return _buildPostCard(context, _encargos[index - 1]);
+                      },
                     ),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 12),
-                        Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade600,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Expanded(child: NewsScreen()),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-            backgroundColor: const Color(0xFF1DA1F2),
-            child: const Icon(Icons.article, color: Colors.white),
-          ),
-          const SizedBox(height: 16),
-          FloatingActionButton(
-            heroTag: 'profileBtn',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ProfileScreen(
-                    onLogout: widget.onLogout ?? () {},
-                  ),
-                ),
-              );
-            },
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            child: const Icon(Icons.person, color: Colors.white),
-          ),
-        ],
+            ),
+            // Tab 2: Noticias
+            const NewsScreen(),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    ProfileScreen(onLogout: widget.onLogout ?? () {}),
+              ),
+            );
+          },
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          child: const Icon(Icons.person, color: Colors.white),
+        ),
       ),
     );
   }
 
   Widget _buildCreatePostWidget() {
+    final pfp = _getSenderPfp(_userProfile);
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -143,10 +283,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-            child: const Icon(Icons.person, color: Colors.blue),
-          ),
+          CircleAvatar(backgroundImage: NetworkImage(pfp)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -161,6 +298,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     hintStyle: TextStyle(color: Colors.grey, fontSize: 18),
                   ),
                 ),
+                if (_selectedImagePath != null) ...[
+                  const SizedBox(height: 8),
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          _selectedImagePath!,
+                          height: 150,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                height: 100,
+                                color: Colors.grey.shade900,
+                                alignment: Alignment.center,
+                                child: const Text('Imagen adjunta'),
+                              ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () {
+                            setState(() {
+                              _selectedImagePath = null;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -169,19 +341,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.image, color: Colors.blue),
-                          onPressed: () {},
+                          onPressed: () async {
+                            final picker = ImagePicker();
+                            final picked = await picker.pickImage(
+                              source: ImageSource.gallery,
+                              imageQuality: 70,
+                              maxWidth: 800,
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _selectedImagePath = picked.path;
+                              });
+                            }
+                          },
                         ),
                       ],
                     ),
                     ElevatedButton(
-                      onPressed: _addPost,
+                      onPressed: _isPosting ? null : _addPost,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
-                      child: const Text('Publicar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: _isPosting
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Publicar',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ],
                 ),
@@ -193,7 +392,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildPostCard(BuildContext context, int index) {
+  Widget _buildPostCard(BuildContext context, Map<String, dynamic> encargo) {
+    final sender = encargo['sender'] as Map<String, dynamic>?;
+    final senderName = _getSenderName(sender);
+    final senderPfp = _getSenderPfp(sender);
+    final senderType = encargo['sender_profile_type'] ?? 'estudiante';
+    final desc = encargo['desc_enc'] ?? '';
+    final img = encargo['img_enc'] ?? '';
+
+    int commentsCount = 0;
+    if (encargo['comentarios'] != null && encargo['comentarios'] is List) {
+      final list = encargo['comentarios'] as List;
+      if (list.isNotEmpty && list.first['count'] != null) {
+        commentsCount = list.first['count'] as int;
+      }
+    }
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       color: const Color(0xFF161C22),
@@ -204,174 +418,99 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => _showCommentDialog(context, index),
+        onTap: () => _showCommentDialog(context, encargo),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.2),
-                  child: Text(
-                    'U$index',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(backgroundImage: NetworkImage(senderPfp)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          senderName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          '@$senderType',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Usuario $index',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        '@usuario$index • ${index + 1}h',
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(desc, style: const TextStyle(fontSize: 15, height: 1.4)),
+              if (img.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    img,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: 200,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox.shrink(),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.more_horiz, color: Colors.grey),
-                  onPressed: () {},
-                ),
               ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _posts[index]['content'] ?? 'Contenido vacío',
-              style: const TextStyle(fontSize: 15, height: 1.4),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildActionIcon(
-                  Icons.chat_bubble_outline,
-                  '${(index + 1) * 2}',
-                ),
-                _buildActionIcon(Icons.repeat, '$index'),
-                _buildActionIcon(
-                  _posts[index]['isLiked'] ? Icons.favorite : Icons.favorite_border,
-                  '${_posts[index]['likes']}',
-                  color: _posts[index]['isLiked'] ? const Color(0xFFF91880) : Colors.grey.shade400,
-                  onTap: () => _toggleLike(index),
-                ),
-                _buildActionIcon(Icons.bookmark_border, ''),
-              ],
-            ),
-          ],
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildActionIcon(
+                    Icons.chat_bubble_outline,
+                    '$commentsCount',
+                    onTap: () => _showCommentDialog(context, encargo),
+                  ),
+                  _buildActionIcon(Icons.repeat, '0'),
+                  _buildActionIcon(Icons.favorite_border, '0'),
+                  _buildActionIcon(Icons.bookmark_border, ''),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-    ));
+    );
   }
 
-  void _showCommentDialog(BuildContext context, int index) {
+  void _showCommentDialog(BuildContext context, Map<String, dynamic> encargo) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF161C22),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            top: 20,
-            left: 16,
-            right: 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade600,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                    child: Text(
-                      'U$index',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Añadir un comentario...',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                autofocus: true,
-                maxLines: 4,
-                minLines: 1,
-                decoration: InputDecoration(
-                  hintText: 'Escribe tu respuesta...',
-                  hintStyle: TextStyle(color: Colors.grey.shade600),
-                  border: InputBorder.none,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Comentario publicado')),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    child: const Text('Responder', style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
+        return _EncargoCommentModal(
+          encargo: encargo,
+          userProfile: _userProfile,
+          onCommentAdded: () {
+            _fetchEncargos();
+          },
         );
       },
     );
   }
 
-  Widget _buildActionIcon(IconData icon, String count, {Color? color, VoidCallback? onTap}) {
+  Widget _buildActionIcon(
+    IconData icon,
+    String count, {
+    Color? color,
+    VoidCallback? onTap,
+  }) {
     final iconColor = color ?? Colors.grey.shade400;
     return InkWell(
       onTap: onTap ?? () {},
@@ -383,13 +522,304 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Icon(icon, color: iconColor, size: 20),
             if (count.isNotEmpty) ...[
               const SizedBox(width: 6),
-              Text(
-                count,
-                style: TextStyle(color: iconColor, fontSize: 14),
-              ),
+              Text(count, style: TextStyle(color: iconColor, fontSize: 14)),
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _EncargoCommentModal extends StatefulWidget {
+  final Map<String, dynamic> encargo;
+  final Map<String, dynamic>? userProfile;
+  final VoidCallback onCommentAdded;
+
+  const _EncargoCommentModal({
+    required this.encargo,
+    required this.userProfile,
+    required this.onCommentAdded,
+  });
+
+  @override
+  State<_EncargoCommentModal> createState() => _EncargoCommentModalState();
+}
+
+class _EncargoCommentModalState extends State<_EncargoCommentModal> {
+  final TextEditingController _commentController = TextEditingController();
+  final _supabase = Supabase.instance.client;
+
+  bool _isLoadingComments = true;
+  bool _isSending = false;
+  List<Map<String, dynamic>> _comments = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchComments();
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchComments() async {
+    try {
+      final response = await _supabase
+          .schema('publicaciones')
+          .from('comentarios')
+          .select('*')
+          .eq('encargo_id', widget.encargo['id_enc'])
+          .order('id_coment', ascending: true);
+
+      List<Map<String, dynamic>> comments = List<Map<String, dynamic>>.from(
+        response,
+      );
+
+      // Extraer IDs únicos
+      final senderIds = comments
+          .map((c) => c['sender_profile_id'])
+          .where((id) => id != null)
+          .toSet()
+          .toList();
+
+      if (senderIds.isNotEmpty) {
+        final profilesResponse = await _supabase
+            .schema('perfiles')
+            .from('perfil_unificado')
+            .select()
+            .filter('id', 'in', senderIds);
+
+        final profiles = List<Map<String, dynamic>>.from(profilesResponse);
+        final profileMap = {for (var p in profiles) p['id']: p};
+
+        for (var c in comments) {
+          final senderId = c['sender_profile_id'];
+          if (senderId != null) {
+            c['sender'] = profileMap[senderId];
+          }
+        }
+      }
+
+      setState(() {
+        _comments = comments;
+        _isLoadingComments = false;
+      });
+    } catch (e) {
+      debugPrint('Error al obtener comentarios: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingComments = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _sendComment() async {
+    final text = _commentController.text.trim();
+    if (text.isEmpty) return;
+
+    setState(() {
+      _isSending = true;
+    });
+
+    try {
+      final profileId = widget.userProfile?['id'];
+      final profileType = widget.userProfile?['profile_type'] ?? 'estudiante';
+
+      await _supabase.schema('publicaciones').from('comentarios').insert({
+        'encargo_id': widget.encargo['id_enc'],
+        'content': text,
+        'sender_profile_id': profileId,
+        'sender_profile_type': profileType,
+      });
+
+      _commentController.clear();
+      await _fetchComments();
+      widget.onCommentAdded();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al responder: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
+      }
+    }
+  }
+
+  String _getSenderName(Map<String, dynamic>? sender) {
+    if (sender == null) return 'Usuario';
+    final type = sender['profile_type'] ?? 'estudiante';
+    if (type == 'docente') {
+      final name =
+          '${sender['nombres_prof'] ?? ''} ${sender['apellidos_prof'] ?? ''}'
+              .trim();
+      return name.isNotEmpty ? name : 'Docente';
+    } else if (type == 'egresado') {
+      final name =
+          '${sender['nombres_pro'] ?? ''} ${sender['apellidos_pro'] ?? ''}'
+              .trim();
+      return name.isNotEmpty ? name : 'Egresado';
+    } else {
+      final name = '${sender['nombres'] ?? ''} ${sender['apellidos'] ?? ''}'
+          .trim();
+      return name.isNotEmpty ? name : 'Estudiante';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.7,
+      decoration: const BoxDecoration(
+        color: Color(0xFF161C22),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        top: 16,
+        left: 16,
+        right: 16,
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade600,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Comentarios',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: _isLoadingComments
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF1DA1F2)),
+                  )
+                : _comments.isEmpty
+                ? Center(
+                    child: Text(
+                      'Aún no hay comentarios. ¡Sé el primero en responder!',
+                      style: TextStyle(color: Colors.grey.shade500),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _comments.length,
+                    itemBuilder: (context, index) {
+                      final coment = _comments[index];
+                      final sender = coment['sender'] as Map<String, dynamic>?;
+                      final senderName = _getSenderName(sender);
+                      final content = coment['content'] ?? '';
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: const Color(
+                                0xFF1DA1F2,
+                              ).withValues(alpha: 0.2),
+                              child: Text(
+                                senderName.isNotEmpty
+                                    ? senderName[0].toUpperCase()
+                                    : 'U',
+                                style: const TextStyle(
+                                  color: Color(0xFF1DA1F2),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    senderName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    content,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          const Divider(color: Colors.grey),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _commentController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Escribe tu respuesta...',
+                    hintStyle: TextStyle(color: Colors.grey.shade600),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: _isSending ? null : _sendComment,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: _isSending
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Responder',
+                        style: TextStyle(color: Colors.white),
+                      ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }

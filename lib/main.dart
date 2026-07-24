@@ -7,12 +7,31 @@ import 'dart:async';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(
-    url: 'https://cjxgqskachxnvnsmwiaa.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqeGdxc2thY2h4bnZuc213aWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzOTIzODYsImV4cCI6MjA5Njk2ODM4Nn0.RiKdksaNwRHBO07dx57DSUM2h_3MU9Z2q7mswHnR4lw',
-  );
-  runApp(const ConnectNetApp());
+  try {
+    await Supabase.initialize(
+      url: 'https://cjxgqskachxnvnsmwiaa.supabase.co',
+      anonKey:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqeGdxc2thY2h4bnZuc213aWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzOTIzODYsImV4cCI6MjA5Njk2ODM4Nn0.RiKdksaNwRHBO07dx57DSUM2h_3MU9Z2q7mswHnR4lw',
+    );
+    runApp(const ConnectNetApp());
+  } catch (e, stackTrace) {
+    debugPrint('Initialization error: $e');
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SingleChildScrollView(
+              child: Text(
+                'Error de inicialización:\n$e\n\n$stackTrace',
+                textDirection: TextDirection.ltr,
+                style: const TextStyle(color: Colors.red, fontSize: 16),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 final supabase = Supabase.instance.client;
