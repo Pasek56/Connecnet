@@ -73,11 +73,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final response = await _supabase
           .schema('publicaciones')
           .from('encargo')
-          .select('*, sender:sender_profile_id(*), comentarios:comentarios(count)')
+          .select('*, comentarios:comentarios(count)')
           .order('id_enc', ascending: false);
 
+      List<Map<String, dynamic>> encargos = List<Map<String, dynamic>>.from(response);
+
+      // Extraer IDs únicos de remitentes
+      final senderIds = encargos
+          .map((e) => e['sender_profile_id'])
+          .where((id) => id != null)
+          .toSet()
+          .toList();
+
+      if (senderIds.isNotEmpty) {
+        // Buscar perfiles
+        final profilesResponse = await _supabase
+            .schema('perfiles')
+            .from('perfil_unificado')
+            .select()
+            .filter('id', 'in', senderIds);
+            
+        final profiles = List<Map<String, dynamic>>.from(profilesResponse);
+        final profileMap = {for (var p in profiles) p['id']: p};
+
+        // Asociar perfiles a los encargos
+        for (var encargo in encargos) {
+          final senderId = encargo['sender_profile_id'];
+          if (senderId != null) {
+            encargo['sender'] = profileMap[senderId];
+          }
+        }
+      }
+
       setState(() {
-        _encargos = List<Map<String, dynamic>>.from(response);
+        _encargos = encargos;
       });
     } catch (e) {
       debugPrint('Error al cargar encargos: $e');
@@ -549,12 +578,39 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
       final response = await _supabase
           .schema('publicaciones')
           .from('comentarios')
-          .select('*, sender:sender_profile_id(*)')
+          .select('*')
           .eq('encargo_id', widget.encargo['id_enc'])
           .order('id_coment', ascending: true);
 
+      List<Map<String, dynamic>> comments = List<Map<String, dynamic>>.from(response);
+
+      // Extraer IDs únicos
+      final senderIds = comments
+          .map((c) => c['sender_profile_id'])
+          .where((id) => id != null)
+          .toSet()
+          .toList();
+
+      if (senderIds.isNotEmpty) {
+        final profilesResponse = await _supabase
+            .schema('perfiles')
+            .from('perfil_unificado')
+            .select()
+            .filter('id', 'in', senderIds);
+            
+        final profiles = List<Map<String, dynamic>>.from(profilesResponse);
+        final profileMap = {for (var p in profiles) p['id']: p};
+
+        for (var c in comments) {
+          final senderId = c['sender_profile_id'];
+          if (senderId != null) {
+            c['sender'] = profileMap[senderId];
+          }
+        }
+      }
+
       setState(() {
-        _comments = List<Map<String, dynamic>>.from(response);
+        _comments = comments;
         _isLoadingComments = false;
       });
     } catch (e) {

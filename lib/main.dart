@@ -16,19 +16,21 @@ Future<void> main() async {
     runApp(const ConnectNetApp());
   } catch (e, stackTrace) {
     debugPrint('Initialization error: $e');
-    runApp(MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: SingleChildScrollView(
-            child: Text(
-              'Error de inicialización:\n$e\n\n$stackTrace',
-              textDirection: TextDirection.ltr,
-              style: const TextStyle(color: Colors.red, fontSize: 16),
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SingleChildScrollView(
+              child: Text(
+                'Error de inicialización:\n$e\n\n$stackTrace',
+                textDirection: TextDirection.ltr,
+                style: const TextStyle(color: Colors.red, fontSize: 16),
+              ),
             ),
           ),
         ),
       ),
-    ));
+    );
   }
 }
 
