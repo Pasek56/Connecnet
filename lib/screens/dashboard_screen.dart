@@ -211,6 +211,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.logout),
+          onPressed: widget.onLogout,
+        ),
         title: const Text(
           'ConnectNet',
           style: TextStyle(fontWeight: FontWeight.bold),

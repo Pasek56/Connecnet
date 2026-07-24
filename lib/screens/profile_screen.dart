@@ -33,7 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _fetchProfile();
   }
 
@@ -427,7 +427,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                     Tab(text: 'Posts'),
                     Tab(text: 'Respuestas'),
                     Tab(text: 'Fotos'),
-                    Tab(text: 'Me gusta'),
                   ],
                 ),
               ),
@@ -442,7 +441,6 @@ class _ProfileScreenState extends State<ProfileScreen>
             _buildEmptyState(
               'No se han subido archivos multimedia recientemente.',
             ),
-            _buildTweetList(onlyLiked: true),
           ],
         ),
       ),
