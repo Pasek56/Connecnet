@@ -28,7 +28,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   String _profileBio = '';
 
   // Mocked list of tweets/posts with state (empty profile)
-  final List<Map<String, dynamic>> _tweets = [];
+  List<Map<String, dynamic>> _tweets = [];
 
   @override
   void initState() {
@@ -66,6 +66,55 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
+  Future<void> _fetchUserPosts() async {
+    if (_profileData == null) return;
+    
+    try {
+      final response = await _supabase
+          .schema('publicaciones')
+          .from('encargo')
+          .select('*, comentarios:comentarios(count)')
+          .eq('sender_profile_id', _profileData!['id'])
+          .order('id_enc', ascending: false);
+
+      final List<Map<String, dynamic>> fetchedPosts = [];
+      for (var encargo in response) {
+        int commentsCount = 0;
+        if (encargo['comentarios'] != null && encargo['comentarios'] is List) {
+          final list = encargo['comentarios'] as List;
+          if (list.isNotEmpty && list.first['count'] != null) {
+            commentsCount = list.first['count'] as int;
+          }
+        }
+        
+        fetchedPosts.add({
+          'id_enc': encargo['id_enc'],
+          'avatarUrl': _getProfilePicUrl(),
+          'displayName': _getDisplayName(),
+          'handle': _getHandle(),
+          'time': 'Reciente',
+          'content': encargo['desc_enc'] ?? '',
+          'hasImage': (encargo['img_enc'] != null && encargo['img_enc'].toString().isNotEmpty),
+          'imageUrl': encargo['img_enc'] ?? '',
+          'comments': commentsCount,
+          'retweets': 0,
+          'likes': 0,
+          'views': 0,
+          'isLiked': false,
+          'isRetweeted': false,
+        });
+      }
+
+      if (mounted) {
+        setState(() {
+          _tweets = fetchedPosts;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error al cargar posts del usuario: $e');
+    }
+  }
+
   Future<void> _fetchProfile() async {
     setState(() {
       _isLoading = true;
@@ -85,6 +134,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             _profileData = data;
             _updateLocalProfileState(data);
           });
+          await _fetchUserPosts();
         } else {
           // Si no existe, crear uno por defecto
           final nameParts = (user.email ?? 'Usuario')
@@ -127,6 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             _profileData = defaultProfile;
             _updateLocalProfileState(defaultProfile);
           });
+          await _fetchUserPosts();
         }
       }
     } catch (e) {
@@ -595,6 +646,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 int.tryParse(semestreController.text) ?? 1,
                           if (selectedType == 'profesional')
                             'titulo': tituloController.text,
+                          if (selectedImagePath != null)
+                            'pfp': selectedImagePath,
                         };
 
                         await _supabase

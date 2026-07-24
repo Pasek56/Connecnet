@@ -209,65 +209,93 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'ConnectNet',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          centerTitle: true,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          bottom: const TabBar(
-            indicatorColor: Color(0xFF1DA1F2),
-            indicatorWeight: 3,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.grey,
-            tabs: [
-              Tab(text: 'Publicaciones'),
-              Tab(text: 'Noticias'),
-            ],
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'ConnectNet',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        body: TabBarView(
-          children: [
-            // Tab 1: Publicaciones (Encargos)
-            RefreshIndicator(
-              onRefresh: _fetchEncargos,
-              color: const Color(0xFF1DA1F2),
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF1DA1F2),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: _encargos.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == 0) return _buildCreatePostWidget();
-                        return _buildPostCard(context, _encargos[index - 1]);
-                      },
-                    ),
-            ),
-            // Tab 2: Noticias
-            const NewsScreen(),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    ProfileScreen(onLogout: widget.onLogout ?? () {}),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: RefreshIndicator(
+        onRefresh: _fetchEncargos,
+        color: const Color(0xFF1DA1F2),
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF1DA1F2),
+                ),
+              )
+            : ListView.builder(
+                itemCount: _encargos.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == 0) return _buildCreatePostWidget();
+                  return _buildPostCard(context, _encargos[index - 1]);
+                },
               ),
-            );
-          },
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          child: const Icon(Icons.person, color: Colors.white),
-        ),
+      ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: 'btn_news',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => Dialog(
+                  backgroundColor: const Color(0xFF161C22),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.9,
+                    height: MediaQuery.of(context).size.height * 0.7,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Scaffold(
+                        backgroundColor: Colors.transparent,
+                        appBar: AppBar(
+                          backgroundColor: Colors.transparent,
+                          elevation: 0,
+                          title: const Text('Noticias', style: TextStyle(fontWeight: FontWeight.bold)),
+                          centerTitle: true,
+                          automaticallyImplyLeading: false,
+                          actions: [
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                        body: const NewsScreen(),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+            backgroundColor: const Color(0xFF1DA1F2),
+            child: const Icon(Icons.article, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            heroTag: 'btn_profile',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      ProfileScreen(onLogout: widget.onLogout ?? () {}),
+                ),
+              );
+            },
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            child: const Icon(Icons.person, color: Colors.white),
+          ),
+        ],
       ),
     );
   }
