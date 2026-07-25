@@ -578,21 +578,6 @@ class _LoginScreenState extends State<LoginScreen>
                                 },
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildSocialButton(
-                                icon: Icons.apple,
-                                label: 'Apple',
-                                onPressed: () async {
-                                  final supabase = Supabase.instance.client;
-                                  await supabase.auth.signInWithOAuth(
-                                    OAuthProvider.apple,
-                                    redirectTo:
-                                        'https://cjxgqskachxnvnsmwiaa.supabase.co/auth/v1/callback',
-                                  );
-                                },
-                              ),
-                            ),
                           ],
                         ),
                         const SizedBox(height: 32),
