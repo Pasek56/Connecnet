@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:typed_data';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -463,6 +464,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
 
     String? selectedImagePath = _profileImagePath;
+    Uint8List? selectedImageBytes;
+    String? selectedImageName;
 
     showDialog(
       context: context,
@@ -583,12 +586,19 @@ class _ProfileScreenState extends State<ProfileScreen>
                           child: SizedBox(
                             width: 48,
                             height: 48,
-                            child: Image.network(
-                              selectedImagePath ?? _profileImageUrl,
-                              fit: BoxFit.cover,
-                              width: 48,
-                              height: 48,
-                            ),
+                            child: selectedImageBytes != null
+                                ? Image.memory(
+                                    selectedImageBytes!,
+                                    fit: BoxFit.cover,
+                                    width: 48,
+                                    height: 48,
+                                  )
+                                : Image.network(
+                                    selectedImagePath ?? _profileImageUrl,
+                                    fit: BoxFit.cover,
+                                    width: 48,
+                                    height: 48,
+                                  ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -602,8 +612,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                               maxHeight: 800,
                             );
                             if (pickedFile != null) {
+                              final bytes = await pickedFile.readAsBytes();
                               setStateDialog(() {
                                 selectedImagePath = pickedFile.path;
+                                selectedImageBytes = bytes;
+                                selectedImageName = pickedFile.name;
                               });
                             }
                           },
@@ -635,6 +648,19 @@ class _ProfileScreenState extends State<ProfileScreen>
                     final user = _supabase.auth.currentUser;
                     if (user != null) {
                       try {
+                        String? uploadedUrl;
+                        if (selectedImageBytes != null && selectedImageName != null) {
+                          final ext = selectedImageName!.split('.').last.toLowerCase();
+                          final path = 'avatars/${user.id}/${DateTime.now().millisecondsSinceEpoch}.$ext';
+                          
+                          await _supabase.storage.from('avatars').uploadBinary(
+                            path,
+                            selectedImageBytes!,
+                            fileOptions: FileOptions(contentType: 'image/$ext'),
+                          );
+                          uploadedUrl = _supabase.storage.from('avatars').getPublicUrl(path);
+                        }
+
                         final updates = {
                           'nombres': nombresController.text,
                           'apellidos': apellidosController.text,
@@ -644,8 +670,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 int.tryParse(semestreController.text) ?? 1,
                           if (selectedType == 'profesional')
                             'titulo': tituloController.text,
-                          if (selectedImagePath != null)
-                            'pfp': selectedImagePath,
+                          if (uploadedUrl != null)
+                            'pfp': uploadedUrl,
                         };
 
                         await _supabase
@@ -664,7 +690,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                         }
                       }
                     }
-                    if (selectedImagePath != null) {
+                    if (selectedImagePath != null && selectedImageBytes == null) {
+                      // This means they didn't pick a new image, keep the old logic just in case
                       setState(() {
                         _profileImagePath = selectedImagePath;
                       });

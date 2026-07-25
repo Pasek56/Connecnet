@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -20,6 +21,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
   bool _isPosting = false;
   String? _selectedImagePath;
+  Uint8List? _selectedImageBytes;
+  String? _selectedImageName;
   Map<String, dynamic>? _userProfile;
   List<Map<String, dynamic>> _encargos = [];
 
@@ -70,6 +73,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _fetchEncargos() async {
     try {
+      // DEBUG: Usuario autenticado actual
+      final currentUser = _supabase.auth.currentUser;
+      debugPrint('=== DEBUG FETCH ENCARGOS ===');
+      debugPrint('Usuario autenticado: ${currentUser?.id}');
+      debugPrint('Email: ${currentUser?.email}');
+
       final response = await _supabase
           .schema('publicaciones')
           .from('encargo')
@@ -80,12 +89,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         response,
       );
 
+      // DEBUG: Cuántos encargos se recibieron
+      debugPrint('Total encargos recibidos: ${encargos.length}');
+
       // Extraer IDs únicos de remitentes
       final senderIds = encargos
           .map((e) => e['sender_profile_id'])
           .where((id) => id != null)
           .toSet()
           .toList();
+
+      // DEBUG: IDs de remitentes únicos
+      debugPrint('Sender IDs únicos: $senderIds');
 
       if (senderIds.isNotEmpty) {
         // Buscar perfiles
@@ -98,6 +113,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final profiles = List<Map<String, dynamic>>.from(profilesResponse);
         final profileMap = {for (var p in profiles) p['id']: p};
 
+        // DEBUG: Perfiles resueltos
+        debugPrint('Perfiles encontrados: ${profiles.length} de ${senderIds.length} solicitados');
+        debugPrint('IDs de perfiles resueltos: ${profileMap.keys.toList()}');
+
         // Asociar perfiles a los encargos
         for (var encargo in encargos) {
           final senderId = encargo['sender_profile_id'];
@@ -107,11 +126,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
       }
 
+      // DEBUG: Resumen por sender
+      final senderCounts = <String, int>{};
+      for (var e in encargos) {
+        final sid = e['sender_profile_id']?.toString() ?? 'null';
+        senderCounts[sid] = (senderCounts[sid] ?? 0) + 1;
+      }
+      debugPrint('Publicaciones por sender_profile_id: $senderCounts');
+      debugPrint('=== FIN DEBUG ===');
+
       setState(() {
         _encargos = encargos;
       });
     } catch (e) {
-      debugPrint('Error al cargar encargos: $e');
+      debugPrint('ERROR al cargar encargos: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -120,6 +148,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         );
       }
+    }
+  }
+
+  Future<String?> _uploadImageToStorage(Uint8List bytes, String fileName) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) return null;
+
+      final ext = fileName.split('.').last.toLowerCase();
+      final path = 'posts/${user.id}/${DateTime.now().millisecondsSinceEpoch}.$ext';
+
+      await _supabase.storage.from('post-images').uploadBinary(
+        path,
+        bytes,
+        fileOptions: FileOptions(contentType: 'image/$ext'),
+      );
+
+      final publicUrl = _supabase.storage.from('post-images').getPublicUrl(path);
+      return publicUrl;
+    } catch (e) {
+      debugPrint('Error al subir imagen: $e');
+      return null;
     }
   }
 
@@ -139,9 +189,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final profileId = _userProfile?['id'];
       final profileType = _userProfile?['profile_type'] ?? 'estudiante';
 
+      // Upload image to Supabase Storage if one was picked
+      String imageUrl = '';
+      if (_selectedImageBytes != null && _selectedImageName != null) {
+        final uploadedUrl = await _uploadImageToStorage(
+          _selectedImageBytes!,
+          _selectedImageName!,
+        );
+        imageUrl = uploadedUrl ?? '';
+      }
+
       await _supabase.schema('publicaciones').from('encargo').insert({
         'desc_enc': content,
-        'img_enc': _selectedImagePath ?? '',
+        'img_enc': imageUrl,
         'sender_profile_id': profileId,
         'sender_profile_type': profileType,
       });
@@ -149,6 +209,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _postController.clear();
       setState(() {
         _selectedImagePath = null;
+        _selectedImageBytes = null;
+        _selectedImageName = null;
       });
 
       await _fetchEncargos();
@@ -330,14 +392,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     hintStyle: TextStyle(color: Colors.grey, fontSize: 18),
                   ),
                 ),
-                if (_selectedImagePath != null) ...[
+                if (_selectedImageBytes != null) ...[
                   const SizedBox(height: 8),
                   Stack(
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          _selectedImagePath!,
+                        child: Image.memory(
+                          _selectedImageBytes!,
                           height: 150,
                           width: double.infinity,
                           fit: BoxFit.cover,
@@ -358,6 +420,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           onPressed: () {
                             setState(() {
                               _selectedImagePath = null;
+                              _selectedImageBytes = null;
+                              _selectedImageName = null;
                             });
                           },
                         ),
@@ -381,8 +445,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               maxWidth: 800,
                             );
                             if (picked != null) {
+                              final bytes = await picked.readAsBytes();
                               setState(() {
                                 _selectedImagePath = picked.path;
+                                _selectedImageBytes = bytes;
+                                _selectedImageName = picked.name;
                               });
                             }
                           },
@@ -485,7 +552,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 12),
               Text(desc, style: const TextStyle(fontSize: 15, height: 1.4)),
-              if (img.isNotEmpty) ...[
+              if (img.isNotEmpty && !img.startsWith('blob:')) ...[
                 const SizedBox(height: 12),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
