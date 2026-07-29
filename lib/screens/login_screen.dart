@@ -580,8 +580,6 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                           ],
                         ),
-                        const SizedBox(height: 32),
-
                         // Footer Switch Mode
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
