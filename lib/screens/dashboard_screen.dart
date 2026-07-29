@@ -3,6 +3,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'profile_screen.dart';
 import 'news_screen.dart';
+import 'conversations_screen.dart';
+import 'public_profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback? onLogout;
@@ -230,12 +232,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 builder: (context) => ProfileScreen(
                   onLogout: widget.onLogout ?? () {},
                 ),
+<<<<<<< Updated upstream
               ),
             );
           },
           backgroundColor: Theme.of(context).colorScheme.primary,
           child: const Icon(Icons.person, color: Colors.white),
         ),
+=======
+              );
+            },
+            backgroundColor: const Color(0xFF1DA1F2),
+            child: const Icon(Icons.article, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            heroTag: 'btn_messages',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ConversationsScreen(
+                    userProfile: _userProfile,
+                  ),
+                ),
+              );
+            },
+            backgroundColor: const Color(0xFF1DA1F2),
+            child: const Icon(Icons.message_rounded, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            heroTag: 'btn_profile',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      ProfileScreen(onLogout: widget.onLogout ?? () {}),
+                ),
+              );
+            },
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            child: const Icon(Icons.person, color: Colors.white),
+          ),
+        ],
+>>>>>>> Stashed changes
       ),
     );
   }
@@ -396,8 +438,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Row(
                 children: [
+<<<<<<< Updated upstream
                   CircleAvatar(
                     backgroundImage: NetworkImage(senderPfp),
+=======
+                  GestureDetector(
+                    onTap: sender != null
+                        ? () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PublicProfileScreen(
+                                  profileId: sender['id'] as int,
+                                ),
+                              ),
+                            )
+                        : null,
+                    child: CircleAvatar(
+                      backgroundImage: NetworkImage(senderPfp),
+                    ),
+>>>>>>> Stashed changes
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -430,15 +489,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               if (img.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    img,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: 200,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const SizedBox.shrink(),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => _FullScreenImageViewer(imageUrl: img),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      img,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 200,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const SizedBox.shrink(),
+                    ),
                   ),
                 ),
               ],
@@ -770,6 +837,107 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
           ),
           const SizedBox(height: 8),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Full Screen Image Viewer ─────────────────────────────────────────────────
+
+class _FullScreenImageViewer extends StatefulWidget {
+  final String imageUrl;
+  const _FullScreenImageViewer({required this.imageUrl});
+
+  @override
+  State<_FullScreenImageViewer> createState() => _FullScreenImageViewerState();
+}
+
+class _FullScreenImageViewerState extends State<_FullScreenImageViewer>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late Animation<double> _scaleAnim;
+  final TransformationController _transformController =
+      TransformationController();
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _scaleAnim = Tween<double>(begin: 0.88, end: 1.0).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOutBack),
+    );
+    _animController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    _transformController.dispose();
+    super.dispose();
+  }
+
+  void _resetZoom() {
+    _transformController.value = Matrix4.identity();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white, size: 28),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.zoom_out_map, color: Colors.white, size: 24),
+            onPressed: _resetZoom,
+            tooltip: 'Restablecer zoom',
+          ),
+        ],
+      ),
+      body: GestureDetector(
+        onDoubleTap: _resetZoom,
+        child: ScaleTransition(
+          scale: _scaleAnim,
+          child: Center(
+            child: InteractiveViewer(
+              transformationController: _transformController,
+              minScale: 0.5,
+              maxScale: 5.0,
+              child: Image.network(
+                widget.imageUrl,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: const Color(0xFF1DA1F2),
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) => const Center(
+                  child: Icon(
+                    Icons.broken_image,
+                    color: Colors.grey,
+                    size: 64,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
