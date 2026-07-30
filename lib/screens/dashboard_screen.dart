@@ -3,6 +3,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'profile_screen.dart';
 import 'news_screen.dart';
+import 'conversations_screen.dart';
+import 'public_profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback? onLogout;
@@ -76,7 +78,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .select('*, comentarios:comentarios(count)')
           .order('id_enc', ascending: false);
 
-      List<Map<String, dynamic>> encargos = List<Map<String, dynamic>>.from(response);
+      List<Map<String, dynamic>> encargos = List<Map<String, dynamic>>.from(
+        response,
+      );
 
       // Extraer IDs únicos de remitentes
       final senderIds = encargos
@@ -92,7 +96,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             .from('perfil_unificado')
             .select()
             .filter('id', 'in', senderIds);
-            
+
         final profiles = List<Map<String, dynamic>>.from(profilesResponse);
         final profileMap = {for (var p in profiles) p['id']: p};
 
@@ -191,8 +195,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               .trim();
       return name.isNotEmpty ? name : 'Egresado';
     } else {
-      final name =
-          '${sender['nombres'] ?? ''} ${sender['apellidos'] ?? ''}'.trim();
+      final name = '${sender['nombres'] ?? ''} ${sender['apellidos'] ?? ''}'
+          .trim();
       return name.isNotEmpty ? name : 'Estudiante';
     }
   }
@@ -237,7 +241,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: const Color(0xFF1DA1F2),
               child: _isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(color: Color(0xFF1DA1F2)),
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF1DA1F2),
+                      ),
                     )
                   : ListView.builder(
                       itemCount: _encargos.length + 1,
@@ -251,19 +257,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const NewsScreen(),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ProfileScreen(
-                  onLogout: widget.onLogout ?? () {},
-                ),
-              ),
-            );
-          },
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          child: const Icon(Icons.person, color: Colors.white),
+        floatingActionButton: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            FloatingActionButton(
+              heroTag: 'btn_article',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ProfileScreen(onLogout: widget.onLogout ?? () {}),
+                  ),
+                );
+              },
+              backgroundColor: const Color(0xFF1DA1F2),
+              child: const Icon(Icons.article, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            FloatingActionButton(
+              heroTag: 'btn_messages',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ConversationsScreen(userProfile: _userProfile),
+                  ),
+                );
+              },
+              backgroundColor: const Color(0xFF1DA1F2),
+              child: const Icon(Icons.message_rounded, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            FloatingActionButton(
+              heroTag: 'btn_profile',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ProfileScreen(onLogout: widget.onLogout ?? () {}),
+                  ),
+                );
+              },
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              child: const Icon(Icons.person, color: Colors.white),
+            ),
+          ],
         ),
       ),
     );
@@ -280,9 +321,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            backgroundImage: NetworkImage(pfp),
-          ),
+          CircleAvatar(backgroundImage: NetworkImage(pfp)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -310,11 +349,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               Container(
-                            height: 100,
-                            color: Colors.grey.shade900,
-                            alignment: Alignment.center,
-                            child: const Text('Imagen adjunta'),
-                          ),
+                                height: 100,
+                                color: Colors.grey.shade900,
+                                alignment: Alignment.center,
+                                child: const Text('Imagen adjunta'),
+                              ),
                         ),
                       ),
                       Positioned(
@@ -425,8 +464,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    backgroundImage: NetworkImage(senderPfp),
+                  GestureDetector(
+                    onTap: sender != null
+                        ? () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PublicProfileScreen(
+                                profileId: sender['id'] as int,
+                              ),
+                            ),
+                          )
+                        : null,
+                    child: CircleAvatar(
+                      backgroundImage: NetworkImage(senderPfp),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -453,21 +504,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              Text(
-                desc,
-                style: const TextStyle(fontSize: 15, height: 1.4),
-              ),
+              Text(desc, style: const TextStyle(fontSize: 15, height: 1.4)),
               if (img.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    img,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: 200,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const SizedBox.shrink(),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => _FullScreenImageViewer(imageUrl: img),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      img,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 200,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const SizedBox.shrink(),
+                    ),
                   ),
                 ),
               ],
@@ -526,10 +582,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Icon(icon, color: iconColor, size: 20),
             if (count.isNotEmpty) ...[
               const SizedBox(width: 6),
-              Text(
-                count,
-                style: TextStyle(color: iconColor, fontSize: 14),
-              ),
+              Text(count, style: TextStyle(color: iconColor, fontSize: 14)),
             ],
           ],
         ),
@@ -582,7 +635,9 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
           .eq('encargo_id', widget.encargo['id_enc'])
           .order('id_coment', ascending: true);
 
-      List<Map<String, dynamic>> comments = List<Map<String, dynamic>>.from(response);
+      List<Map<String, dynamic>> comments = List<Map<String, dynamic>>.from(
+        response,
+      );
 
       // Extraer IDs únicos
       final senderIds = comments
@@ -597,7 +652,7 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
             .from('perfil_unificado')
             .select()
             .filter('id', 'in', senderIds);
-            
+
         final profiles = List<Map<String, dynamic>>.from(profilesResponse);
         final profileMap = {for (var p in profiles) p['id']: p};
 
@@ -647,9 +702,9 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
       widget.onCommentAdded();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al responder: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al responder: $e')));
       }
     } finally {
       if (mounted) {
@@ -674,8 +729,8 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
               .trim();
       return name.isNotEmpty ? name : 'Egresado';
     } else {
-      final name =
-          '${sender['nombres'] ?? ''} ${sender['apellidos'] ?? ''}'.trim();
+      final name = '${sender['nombres'] ?? ''} ${sender['apellidos'] ?? ''}'
+          .trim();
       return name.isNotEmpty ? name : 'Estudiante';
     }
   }
@@ -720,71 +775,70 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
                     child: CircularProgressIndicator(color: Color(0xFF1DA1F2)),
                   )
                 : _comments.isEmpty
-                    ? Center(
-                        child: Text(
-                          'Aún no hay comentarios. ¡Sé el primero en responder!',
-                          style: TextStyle(color: Colors.grey.shade500),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _comments.length,
-                        itemBuilder: (context, index) {
-                          final coment = _comments[index];
-                          final sender =
-                              coment['sender'] as Map<String, dynamic>?;
-                          final senderName = _getSenderName(sender);
-                          final content = coment['content'] ?? '';
+                ? Center(
+                    child: Text(
+                      'Aún no hay comentarios. ¡Sé el primero en responder!',
+                      style: TextStyle(color: Colors.grey.shade500),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _comments.length,
+                    itemBuilder: (context, index) {
+                      final coment = _comments[index];
+                      final sender = coment['sender'] as Map<String, dynamic>?;
+                      final senderName = _getSenderName(sender);
+                      final content = coment['content'] ?? '';
 
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                CircleAvatar(
-                                  radius: 16,
-                                  backgroundColor: const Color(0xFF1DA1F2)
-                                      .withValues(alpha: 0.2),
-                                  child: Text(
-                                    senderName.isNotEmpty
-                                        ? senderName[0].toUpperCase()
-                                        : 'U',
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: const Color(
+                                0xFF1DA1F2,
+                              ).withValues(alpha: 0.2),
+                              child: Text(
+                                senderName.isNotEmpty
+                                    ? senderName[0].toUpperCase()
+                                    : 'U',
+                                style: const TextStyle(
+                                  color: Color(0xFF1DA1F2),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    senderName,
                                     style: const TextStyle(
-                                      color: Color(0xFF1DA1F2),
-                                      fontSize: 12,
                                       fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: Colors.white,
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        senderName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        content,
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    content,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          );
-                        },
-                      ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
           ),
           const Divider(color: Colors.grey),
           Row(
@@ -826,6 +880,103 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
           ),
           const SizedBox(height: 8),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Full Screen Image Viewer ─────────────────────────────────────────────────
+
+class _FullScreenImageViewer extends StatefulWidget {
+  final String imageUrl;
+  const _FullScreenImageViewer({required this.imageUrl});
+
+  @override
+  State<_FullScreenImageViewer> createState() => _FullScreenImageViewerState();
+}
+
+class _FullScreenImageViewerState extends State<_FullScreenImageViewer>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late Animation<double> _scaleAnim;
+  final TransformationController _transformController =
+      TransformationController();
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _scaleAnim = Tween<double>(begin: 0.88, end: 1.0).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOutBack),
+    );
+    _animController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    _transformController.dispose();
+    super.dispose();
+  }
+
+  void _resetZoom() {
+    _transformController.value = Matrix4.identity();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white, size: 28),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.zoom_out_map, color: Colors.white, size: 24),
+            onPressed: _resetZoom,
+            tooltip: 'Restablecer zoom',
+          ),
+        ],
+      ),
+      body: GestureDetector(
+        onDoubleTap: _resetZoom,
+        child: ScaleTransition(
+          scale: _scaleAnim,
+          child: Center(
+            child: InteractiveViewer(
+              transformationController: _transformController,
+              minScale: 0.5,
+              maxScale: 5.0,
+              child: Image.network(
+                widget.imageUrl,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: const Color(0xFF1DA1F2),
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) => const Center(
+                  child: Icon(Icons.broken_image, color: Colors.grey, size: 64),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
