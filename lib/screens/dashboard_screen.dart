@@ -181,6 +181,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _deletePost(int postId) async {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161C22),
+        title: const Text('Eliminar publicación', style: TextStyle(color: Colors.white)),
+        content: const Text('¿Estás seguro de que deseas eliminar esta publicación?', style: TextStyle(color: Colors.grey)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.blue)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await _supabase.schema('publicaciones').from('encargo').delete().eq('id_enc', postId);
+                await _fetchEncargos();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Publicación eliminada'),
+                      backgroundColor: Color(0xFF1DA1F2),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error al eliminar: $e'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _getSenderName(Map<String, dynamic>? sender) {
     if (sender == null) return 'Usuario';
     final type = sender['profile_type'] ?? 'estudiante';
@@ -254,9 +298,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: const Color(0xFF161C22),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const ClipRRect(
-                        borderRadius: BorderRadius.all(Radius.circular(16)),
-                        child: NewsScreen(),
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.all(Radius.circular(16)),
+                        child: NewsScreen(userProfile: _userProfile),
                       ),
                     ),
                   );
@@ -494,6 +538,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                   ),
+                  if (_userProfile?['profile_type'] == 'docente')
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                      onPressed: () => _deletePost(encargo['id_enc']),
+                    ),
                 ],
               ),
               const SizedBox(height: 12),

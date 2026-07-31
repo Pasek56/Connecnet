@@ -4,7 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'news_detail_screen.dart';
 
 class NewsScreen extends StatefulWidget {
-  const NewsScreen({super.key});
+  final Map<String, dynamic>? userProfile;
+
+  const NewsScreen({super.key, this.userProfile});
 
   @override
   State<NewsScreen> createState() => _NewsScreenState();
@@ -242,7 +244,10 @@ class _NewsScreenState extends State<NewsScreen> {
               itemCount: _newsList.length + 1,
               itemBuilder: (context, index) {
                 if (index == 0) {
-                  return _buildCreateNewsWidget();
+                  final profileType = widget.userProfile?['profile_type'];
+                  return (profileType == 'docente' || profileType == 'egresado')
+                      ? _buildCreateNewsWidget()
+                      : const SizedBox.shrink();
                 }
                 final rawNews = _newsList[index - 1];
                 final parsed = _parseNewsDesc(rawNews['desc_pub'] ?? '');
