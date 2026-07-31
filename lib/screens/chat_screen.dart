@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/messaging_service.dart';
+import 'public_profile_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String conversationId;
@@ -201,9 +202,23 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         titleSpacing: 0,
         title: Row(
           children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundImage: NetworkImage(otherPfp),
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: CircleAvatar(
+                radius: 18,
+                backgroundImage: NetworkImage(otherPfp),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PublicProfileScreen(
+                      profileId: widget.otherProfile['id'] as int,
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(width: 12),
             Expanded(

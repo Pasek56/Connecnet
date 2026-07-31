@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'public_profile_screen.dart';
 
 class NewsDetailScreen extends StatefulWidget {
   final Map<String, dynamic> news;
@@ -275,20 +276,36 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            CircleAvatar(
-                                              radius: 16,
-                                              backgroundColor:
-                                                  const Color(0xFF1DA1F2)
-                                                      .withValues(alpha: 0.2),
-                                              child: Text(
-                                                senderName.isNotEmpty
-                                                    ? senderName[0]
-                                                        .toUpperCase()
-                                                    : 'U',
-                                                style: const TextStyle(
-                                                  color: Color(0xFF1DA1F2),
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold,
+                                            IconButton(
+                                              padding: EdgeInsets.zero,
+                                              constraints: const BoxConstraints(),
+                                              onPressed: sender != null
+                                                  ? () {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (_) => PublicProfileScreen(
+                                                            profileId: sender['id'] as int,
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }
+                                                  : null,
+                                              icon: CircleAvatar(
+                                                radius: 16,
+                                                backgroundColor:
+                                                    const Color(0xFF1DA1F2)
+                                                        .withValues(alpha: 0.2),
+                                                child: Text(
+                                                  senderName.isNotEmpty
+                                                      ? senderName[0]
+                                                          .toUpperCase()
+                                                      : 'U',
+                                                  style: const TextStyle(
+                                                    color: Color(0xFF1DA1F2),
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
                                                 ),
                                               ),
                                             ),

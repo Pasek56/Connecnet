@@ -211,101 +211,92 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'ConnectNet',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          centerTitle: true,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          bottom: const TabBar(
-            indicatorColor: Color(0xFF1DA1F2),
-            indicatorWeight: 3,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.grey,
-            tabs: [
-              Tab(text: 'Publicaciones'),
-              Tab(text: 'Noticias'),
-            ],
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'ConnectNet',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        body: TabBarView(
-          children: [
-            // Tab 1: Publicaciones (Encargos)
-            RefreshIndicator(
-              onRefresh: _fetchEncargos,
-              color: const Color(0xFF1DA1F2),
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF1DA1F2),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: RefreshIndicator(
+        onRefresh: _fetchEncargos,
+        color: const Color(0xFF1DA1F2),
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFF1DA1F2)),
+              )
+            : ListView.builder(
+                itemCount: _encargos.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == 0) return _buildCreatePostWidget();
+                  return _buildPostCard(context, _encargos[index - 1]);
+                },
+              ),
+      ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: 'btn_article',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return Dialog(
+                    backgroundColor: Colors.transparent,
+                    insetPadding: const EdgeInsets.all(16),
+                    child: Container(
+                      height: MediaQuery.of(context).size.height * 0.8,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF161C22),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                    )
-                  : ListView.builder(
-                      itemCount: _encargos.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == 0) return _buildCreatePostWidget();
-                        return _buildPostCard(context, _encargos[index - 1]);
-                      },
+                      child: const ClipRRect(
+                        borderRadius: BorderRadius.all(Radius.circular(16)),
+                        child: NewsScreen(),
+                      ),
                     ),
-            ),
-            // Tab 2: Noticias
-            const NewsScreen(),
-          ],
-        ),
-        floatingActionButton: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            FloatingActionButton(
-              heroTag: 'btn_article',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        ProfileScreen(onLogout: widget.onLogout ?? () {}),
-                  ),
-                );
-              },
-              backgroundColor: const Color(0xFF1DA1F2),
-              child: const Icon(Icons.article, color: Colors.white),
-            ),
-            const SizedBox(height: 16),
-            FloatingActionButton(
-              heroTag: 'btn_messages',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        ConversationsScreen(userProfile: _userProfile),
-                  ),
-                );
-              },
-              backgroundColor: const Color(0xFF1DA1F2),
-              child: const Icon(Icons.message_rounded, color: Colors.white),
-            ),
-            const SizedBox(height: 16),
-            FloatingActionButton(
-              heroTag: 'btn_profile',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        ProfileScreen(onLogout: widget.onLogout ?? () {}),
-                  ),
-                );
-              },
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              child: const Icon(Icons.person, color: Colors.white),
-            ),
-          ],
-        ),
+                  );
+                },
+              );
+            },
+            backgroundColor: const Color(0xFF1DA1F2),
+            child: const Icon(Icons.article, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            heroTag: 'btn_messages',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      ConversationsScreen(userProfile: _userProfile),
+                ),
+              );
+            },
+            backgroundColor: const Color(0xFF1DA1F2),
+            child: const Icon(Icons.message_rounded, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            heroTag: 'btn_profile',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      ProfileScreen(onLogout: widget.onLogout ?? () {}),
+                ),
+              );
+            },
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            child: const Icon(Icons.person, color: Colors.white),
+          ),
+        ],
       ),
     );
   }
@@ -464,8 +455,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Row(
                 children: [
-                  GestureDetector(
-                    onTap: sender != null
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: sender != null
                         ? () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -475,7 +468,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           )
                         : null,
-                    child: CircleAvatar(
+                    icon: CircleAvatar(
                       backgroundImage: NetworkImage(senderPfp),
                     ),
                   ),
@@ -794,19 +787,36 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            CircleAvatar(
-                              radius: 16,
-                              backgroundColor: const Color(
-                                0xFF1DA1F2,
-                              ).withValues(alpha: 0.2),
-                              child: Text(
-                                senderName.isNotEmpty
-                                    ? senderName[0].toUpperCase()
-                                    : 'U',
-                                style: const TextStyle(
-                                  color: Color(0xFF1DA1F2),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: sender != null
+                                  ? () {
+                                      Navigator.pop(context);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => PublicProfileScreen(
+                                            profileId: sender['id'] as int,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  : null,
+                              icon: CircleAvatar(
+                                radius: 16,
+                                backgroundColor: const Color(
+                                  0xFF1DA1F2,
+                                ).withValues(alpha: 0.2),
+                                child: Text(
+                                  senderName.isNotEmpty
+                                      ? senderName[0].toUpperCase()
+                                      : 'U',
+                                  style: const TextStyle(
+                                    color: Color(0xFF1DA1F2),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),

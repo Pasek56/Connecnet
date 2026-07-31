@@ -388,70 +388,26 @@ class MessagingService {
 
       final searchTerm = '%${query.trim()}%';
 
-      // Search across all profile type name columns with separate queries
-      // to avoid .or() filter issues with ilike in some Supabase client versions.
-      // Estudiante columns: nombres, apellidos
-      // Docente columns: nombres_prof, apellidos_prof
-      // Egresado columns: nombres_pro, apellidos_pro
+      final response = await _supabase
+          .schema('perfiles')
+          .from('perfil_unificado')
+          .select()
+          .neq('id', currentProfileId)
+          .or('nombres.ilike.$searchTerm,apellidos.ilike.$searchTerm,nombres_prof.ilike.$searchTerm,apellidos_prof.ilike.$searchTerm,nombres_pro.ilike.$searchTerm,apellidos_pro.ilike.$searchTerm')
+          .limit(20);
 
-      final futures = await Future.wait([
-        _safeQuery(_supabase
-            .schema('perfiles')
-            .from('perfil_unificado')
-            .select()
-            .neq('id', currentProfileId)
-            .ilike('nombres', searchTerm)
-            .limit(20)),
-        _safeQuery(_supabase
-            .schema('perfiles')
-            .from('perfil_unificado')
-            .select()
-            .neq('id', currentProfileId)
-            .ilike('apellidos', searchTerm)
-            .limit(20)),
-        _safeQuery(_supabase
-            .schema('perfiles')
-            .from('perfil_unificado')
-            .select()
-            .neq('id', currentProfileId)
-            .ilike('nombres_prof', searchTerm)
-            .limit(20)),
-        _safeQuery(_supabase
-            .schema('perfiles')
-            .from('perfil_unificado')
-            .select()
-            .neq('id', currentProfileId)
-            .ilike('apellidos_prof', searchTerm)
-            .limit(20)),
-        _safeQuery(_supabase
-            .schema('perfiles')
-            .from('perfil_unificado')
-            .select()
-            .neq('id', currentProfileId)
-            .ilike('nombres_pro', searchTerm)
-            .limit(20)),
-        _safeQuery(_supabase
-            .schema('perfiles')
-            .from('perfil_unificado')
-            .select()
-            .neq('id', currentProfileId)
-            .ilike('apellidos_pro', searchTerm)
-            .limit(20)),
-      ]);
-
-      // Merge and deduplicate by profile id
-      final Map<int, Map<String, dynamic>> uniqueProfiles = {};
-      for (var resultList in futures) {
-        for (var profile in List<Map<String, dynamic>>.from(resultList)) {
-          final id = profile['id'] as int;
-          uniqueProfiles.putIfAbsent(id, () => profile);
-        }
-      }
-
-      return uniqueProfiles.values.toList();
+      return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Error searching users: $e');
-      return [];
+      return [
+        {
+          'id': -1,
+          'nombres': 'Error:',
+          'apellidos': e.toString(),
+          'profile_type': 'estudiante',
+          'pfp': null,
+        }
+      ];
     }
   }
 }

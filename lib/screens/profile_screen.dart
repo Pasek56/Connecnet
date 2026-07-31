@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'public_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -775,9 +776,24 @@ class _ProfileScreenState extends State<ProfileScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Avatar
-                CircleAvatar(
-                  radius: 20,
-                  backgroundImage: NetworkImage(tweet['avatarUrl']),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () {
+                    // Navigate to the user's profile
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PublicProfileScreen(
+                          profileId: tweet['profileId'] as int,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: CircleAvatar(
+                    radius: 20,
+                    backgroundImage: NetworkImage(tweet['avatarUrl']),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 // Content
