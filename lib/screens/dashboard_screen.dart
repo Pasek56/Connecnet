@@ -25,6 +25,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic>? _userProfile;
   List<Map<String, dynamic>> _encargos = [];
 
+  // Like state
+  Set<int> _likedEncargos = {};
+  Map<int, int> _likeCounts = {};
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
     await _fetchUserProfile();
     await _fetchEncargos();
+    await _fetchLikes();
     if (mounted) {
       setState(() {
         _isLoading = false;
@@ -122,6 +127,130 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         );
       }
+    }
+  }
+
+  // ─── Likes ──────────────────────────────────────────────────────────
+
+  Future<void> _fetchLikes() async {
+    final profileId = _userProfile?['id'] as int?;
+    if (profileId == null) return;
+
+    try {
+      // Fetch which encargos this user has liked
+      final myLikes = await _supabase
+          .schema('publicaciones')
+          .from('likes')
+          .select('encargo_id')
+          .eq('profile_id', profileId);
+
+      final likedIds = <int>{};
+      for (var row in List<Map<String, dynamic>>.from(myLikes)) {
+        likedIds.add(row['encargo_id'] as int);
+      }
+
+      // Fetch like counts for all encargos currently displayed
+      final encargoIds = _encargos
+          .map((e) => e['id_enc'] as int?)
+          .where((id) => id != null)
+          .cast<int>()
+          .toList();
+
+      final counts = <int, int>{};
+      if (encargoIds.isNotEmpty) {
+        final countsResponse = await _supabase
+            .schema('publicaciones')
+            .from('likes')
+            .select('encargo_id')
+            .filter('encargo_id', 'in', encargoIds);
+
+        for (var row in List<Map<String, dynamic>>.from(countsResponse)) {
+          final eid = row['encargo_id'] as int;
+          counts[eid] = (counts[eid] ?? 0) + 1;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _likedEncargos = likedIds;
+          _likeCounts = counts;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error al cargar likes: $e');
+    }
+  }
+
+  Future<void> _toggleLike(int encargoId) async {
+    final profileId = _userProfile?['id'] as int?;
+    if (profileId == null) return;
+
+    final wasLiked = _likedEncargos.contains(encargoId);
+
+    // Optimistic UI update
+    setState(() {
+      if (wasLiked) {
+        _likedEncargos.remove(encargoId);
+        _likeCounts[encargoId] = (_likeCounts[encargoId] ?? 1) - 1;
+      } else {
+        _likedEncargos.add(encargoId);
+        _likeCounts[encargoId] = (_likeCounts[encargoId] ?? 0) + 1;
+      }
+    });
+
+    try {
+      if (wasLiked) {
+        await _supabase
+            .schema('publicaciones')
+            .from('likes')
+            .delete()
+            .eq('encargo_id', encargoId)
+            .eq('profile_id', profileId);
+      } else {
+        await _supabase.schema('publicaciones').from('likes').insert({
+          'encargo_id': encargoId,
+          'profile_id': profileId,
+        });
+      }
+    } catch (e) {
+      // Revert on failure
+      if (mounted) {
+        setState(() {
+          if (wasLiked) {
+            _likedEncargos.add(encargoId);
+            _likeCounts[encargoId] = (_likeCounts[encargoId] ?? 0) + 1;
+          } else {
+            _likedEncargos.remove(encargoId);
+            _likeCounts[encargoId] = (_likeCounts[encargoId] ?? 1) - 1;
+          }
+        });
+      }
+      debugPrint('Error al alternar like: $e');
+    }
+  }
+
+  // ─── PFP Navigation ─────────────────────────────────────────────────
+
+  void _navigateToProfile(Map<String, dynamic> sender) {
+    final senderId = sender['id'] as int?;
+    final currentId = _userProfile?['id'] as int?;
+
+    if (senderId == null) return;
+
+    if (senderId == currentId) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProfileScreen(onLogout: widget.onLogout ?? () {}),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PublicProfileScreen(profileId: senderId),
+        ),
+      );
     }
   }
 
@@ -503,14 +632,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     onPressed: sender != null
-                        ? () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PublicProfileScreen(
-                                profileId: sender['id'] as int,
-                              ),
-                            ),
-                          )
+                        ? () => _navigateToProfile(sender)
                         : null,
                     icon: CircleAvatar(
                       backgroundImage: NetworkImage(senderPfp),
@@ -570,18 +692,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ],
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildActionIcon(
-                    Icons.chat_bubble_outline,
-                    '$commentsCount',
-                    onTap: () => _showCommentDialog(context, encargo),
-                  ),
-                  _buildActionIcon(Icons.repeat, '0'),
-                  _buildActionIcon(Icons.favorite_border, '0'),
-                  _buildActionIcon(Icons.bookmark_border, ''),
-                ],
+              Builder(
+                builder: (context) {
+                  final encargoId = encargo['id_enc'] as int;
+                  final isLiked = _likedEncargos.contains(encargoId);
+                  final likeCount = _likeCounts[encargoId] ?? 0;
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildActionIcon(
+                        Icons.chat_bubble_outline,
+                        '$commentsCount',
+                        onTap: () => _showCommentDialog(context, encargo),
+                      ),
+                      _buildActionIcon(Icons.repeat, '0'),
+                      _buildActionIcon(
+                        isLiked ? Icons.favorite : Icons.favorite_border,
+                        likeCount > 0 ? '$likeCount' : '0',
+                        color: isLiked ? Colors.redAccent : null,
+                        onTap: () => _toggleLike(encargoId),
+                      ),
+                      _buildActionIcon(Icons.bookmark_border, ''),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -842,14 +977,31 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
                               onPressed: sender != null
                                   ? () {
                                       Navigator.pop(context);
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => PublicProfileScreen(
-                                            profileId: sender['id'] as int,
-                                          ),
-                                        ),
-                                      );
+                                      final senderId = sender['id'] as int?;
+                                      final currentId =
+                                          widget.userProfile?['id'] as int?;
+                                      if (senderId != null) {
+                                        if (senderId == currentId) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => ProfileScreen(
+                                                onLogout: () {},
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  PublicProfileScreen(
+                                                profileId: senderId,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
                                     }
                                   : null,
                               icon: CircleAvatar(

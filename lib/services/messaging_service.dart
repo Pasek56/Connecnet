@@ -384,30 +384,62 @@ class MessagingService {
     int currentProfileId,
   ) async {
     try {
-      if (query.trim().isEmpty) return [];
+      final cleanQuery = query.trim();
+      if (cleanQuery.isEmpty) return [];
 
-      final searchTerm = '%${query.trim()}%';
+      // Split query into terms (e.g., "Carlos Mendoza" -> ["Carlos", "Mendoza"])
+      final terms =
+          cleanQuery.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+      if (terms.isEmpty) return [];
 
-      final response = await _supabase
-          .schema('perfiles')
-          .from('perfil_unificado')
-          .select()
-          .neq('id', currentProfileId)
-          .or('nombres.ilike.$searchTerm,apellidos.ilike.$searchTerm,nombres_prof.ilike.$searchTerm,apellidos_prof.ilike.$searchTerm,nombres_pro.ilike.$searchTerm,apellidos_pro.ilike.$searchTerm')
-          .limit(20);
+      final List<Future<List<dynamic>>> futures = [];
 
-      return List<Map<String, dynamic>>.from(response);
+      for (final term in terms) {
+        final pattern = '%$term%';
+        final cols = [
+          'nombres',
+          'apellidos',
+          'nombres_prof',
+          'apellidos_prof',
+          'nombres_pro',
+          'apellidos_pro',
+        ];
+        for (final col in cols) {
+          futures.add(
+            _safeQuery(
+              _supabase
+                  .schema('perfiles')
+                  .from('perfil_unificado')
+                  .select()
+                  .neq('id', currentProfileId)
+                  .ilike(col, pattern)
+                  .limit(20),
+            ),
+          );
+        }
+      }
+
+      final resultsList = await Future.wait(futures);
+
+      // Deduplicate results by profile ID
+      final Map<int, Map<String, dynamic>> resultMap = {};
+      for (final list in resultsList) {
+        for (final item in list) {
+          if (item is Map) {
+            final mapItem = Map<String, dynamic>.from(item);
+            final id = mapItem['id'] as int?;
+            if (id != null && id != currentProfileId) {
+              resultMap[id] = mapItem;
+            }
+          }
+        }
+      }
+
+      return resultMap.values.toList();
     } catch (e) {
       debugPrint('Error searching users: $e');
-      return [
-        {
-          'id': -1,
-          'nombres': 'Error:',
-          'apellidos': e.toString(),
-          'profile_type': 'estudiante',
-          'pfp': null,
-        }
-      ];
+      return [];
     }
   }
 }
+

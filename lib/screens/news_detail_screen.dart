@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'public_profile_screen.dart';
+import 'profile_screen.dart';
 
 class NewsDetailScreen extends StatefulWidget {
   final Map<String, dynamic> news;
@@ -65,12 +66,39 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
       final response = await _supabase
           .schema('publicaciones')
           .from('comentarios')
-          .select('*, sender:sender_profile_id(*)')
+          .select('*')
           .eq('noticia_id', noticiaId)
           .order('id_coment', ascending: true);
 
+      List<Map<String, dynamic>> comments =
+          List<Map<String, dynamic>>.from(response);
+
+      final senderIds = comments
+          .map((c) => c['sender_profile_id'])
+          .where((id) => id != null)
+          .toSet()
+          .toList();
+
+      if (senderIds.isNotEmpty) {
+        final profilesResponse = await _supabase
+            .schema('perfiles')
+            .from('perfil_unificado')
+            .select()
+            .filter('id', 'in', senderIds);
+
+        final profiles = List<Map<String, dynamic>>.from(profilesResponse);
+        final profileMap = {for (var p in profiles) p['id']: p};
+
+        for (var c in comments) {
+          final senderId = c['sender_profile_id'];
+          if (senderId != null) {
+            c['sender'] = profileMap[senderId];
+          }
+        }
+      }
+
       setState(() {
-        _comments = List<Map<String, dynamic>>.from(response);
+        _comments = comments;
       });
     } catch (e) {
       debugPrint('Error al obtener comentarios de noticia: $e');
@@ -281,14 +309,36 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                                               constraints: const BoxConstraints(),
                                               onPressed: sender != null
                                                   ? () {
-                                                      Navigator.push(
-                                                        context,
-                                                        MaterialPageRoute(
-                                                          builder: (_) => PublicProfileScreen(
-                                                            profileId: sender['id'] as int,
-                                                          ),
-                                                        ),
-                                                      );
+                                                      final senderId =
+                                                          sender['id'] as int?;
+                                                      final currentId =
+                                                          _userProfile?['id']
+                                                              as int?;
+                                                      if (senderId != null) {
+                                                        if (senderId ==
+                                                            currentId) {
+                                                          Navigator.push(
+                                                            context,
+                                                            MaterialPageRoute(
+                                                              builder: (_) =>
+                                                                  ProfileScreen(
+                                                                onLogout: () {},
+                                                              ),
+                                                            ),
+                                                          );
+                                                        } else {
+                                                          Navigator.push(
+                                                            context,
+                                                            MaterialPageRoute(
+                                                              builder: (_) =>
+                                                                  PublicProfileScreen(
+                                                                profileId:
+                                                                    senderId,
+                                                              ),
+                                                            ),
+                                                          );
+                                                        }
+                                                      }
                                                     }
                                                   : null,
                                               icon: CircleAvatar(
