@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Pantalla de perfil público (solo lectura) de otro usuario.
 /// Recibe el [profileId] del perfil a mostrar.
@@ -232,12 +234,27 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
                     const SizedBox(height: 12),
 
                     // Bio
-                    Text(
-                      bio,
+                    Linkify(
+                      onOpen: (link) async {
+                        final uri = Uri.tryParse(link.url);
+                        if (uri != null && await canLaunchUrl(uri)) {
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        }
+                      },
+                      text: bio,
                       style: const TextStyle(
                         fontSize: 15,
                         color: Colors.white,
                         height: 1.3,
+                      ),
+                      linkStyle: const TextStyle(
+                        fontSize: 15,
+                        height: 1.3,
+                        color: Color(0xFF1DA1F2),
+                        decoration: TextDecoration.underline,
                       ),
                     ),
                     const SizedBox(height: 12),
