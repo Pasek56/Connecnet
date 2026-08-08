@@ -422,22 +422,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _fetchEncargos,
-        color: const Color(0xFF1DA1F2),
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFF1DA1F2)),
-              )
-            : ListView.builder(
-                itemCount: _encargos.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == 0) return _buildCreatePostWidget();
-                  return _buildPostCard(context, _encargos[index - 1]);
-                },
-              ),
-            )
-          : null,
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
