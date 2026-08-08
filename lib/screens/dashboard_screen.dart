@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'profile_screen.dart';
 import 'news_screen.dart';
 import 'conversations_screen.dart';
@@ -1218,12 +1220,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              Text(
-                desc,
+              Linkify(
+                onOpen: (link) async {
+                  final uri = Uri.tryParse(link.url);
+                  if (uri != null && await canLaunchUrl(uri)) {
+                    await launchUrl(
+                      uri,
+                      mode: LaunchMode.externalApplication,
+                    );
+                  }
+                },
+                text: desc,
                 style: const TextStyle(
                   fontSize: 14.5,
                   height: 1.45,
                   color: Colors.black87,
+                ),
+                linkStyle: const TextStyle(
+                  color: Color(0xFF003E90),
+                  decoration: TextDecoration.underline,
                 ),
               ),
               if (img.isNotEmpty) ...[
@@ -1615,12 +1630,24 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      content,
+                                    Linkify(
+                                      onOpen: (link) async {
+                                        final uri = Uri.tryParse(link.url);
+                                        if (uri != null && await canLaunchUrl(uri)) {
+                                          await launchUrl(
+                                            uri,
+                                            mode: LaunchMode.externalApplication,
+                                          );
+                                        }
+                                      },
+                                      text: content,
                                       style: const TextStyle(
                                         color: Colors.black87,
                                         fontSize: 13.5,
+                                      ),
+                                      linkStyle: const TextStyle(
+                                        color: Color(0xFF003E90),
+                                        decoration: TextDecoration.underline,
                                       ),
                                     ),
                                   ],

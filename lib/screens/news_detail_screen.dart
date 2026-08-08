@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'public_profile_screen.dart';
 import 'profile_screen.dart';
 
@@ -247,12 +249,25 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Text(
-                          widget.news['content'] ?? '',
+                        Linkify(
+                          onOpen: (link) async {
+                            final uri = Uri.tryParse(link.url);
+                            if (uri != null && await canLaunchUrl(uri)) {
+                              await launchUrl(
+                                uri,
+                                mode: LaunchMode.externalApplication,
+                              );
+                            }
+                          },
+                          text: widget.news['content'] ?? '',
                           style: TextStyle(
                             color: Colors.grey.shade300,
                             fontSize: 16,
                             height: 1.5,
+                          ),
+                          linkStyle: const TextStyle(
+                            color: Color(0xFF1DA1F2),
+                            decoration: TextDecoration.underline,
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -375,11 +390,24 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                                                     ),
                                                   ),
                                                   const SizedBox(height: 2),
-                                                  Text(
-                                                    content,
+                                                  Linkify(
+                                                    onOpen: (link) async {
+                                                      final uri = Uri.tryParse(link.url);
+                                                      if (uri != null && await canLaunchUrl(uri)) {
+                                                        await launchUrl(
+                                                          uri,
+                                                          mode: LaunchMode.externalApplication,
+                                                        );
+                                                      }
+                                                    },
+                                                    text: content,
                                                     style: const TextStyle(
                                                       color: Colors.white70,
                                                       fontSize: 14,
+                                                    ),
+                                                    linkStyle: const TextStyle(
+                                                      color: Color(0xFF1DA1F2),
+                                                      decoration: TextDecoration.underline,
                                                     ),
                                                   ),
                                                 ],
