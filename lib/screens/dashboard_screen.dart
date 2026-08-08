@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'profile_screen.dart';
 import 'news_screen.dart';
 import 'conversations_screen.dart';
 import 'public_profile_screen.dart';
+import 'search_profiles_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback? onLogout;
@@ -397,16 +400,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isWideScreen = MediaQuery.of(context).size.width > 800;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F9),
-      appBar: _buildCustomAppBar(),
-      drawer: !isWideScreen
-          ? Drawer(
-              child: Container(
-                color: Colors.white,
-                child: SafeArea(child: _buildSidebarContents()),
-              ),
-            )
-          : null,
+      appBar: AppBar(
+        title: const Text(
+          'ConnectNet',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SearchProfilesScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1325,12 +1340,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              Text(
-                desc,
-                style: const TextStyle(
-                  fontSize: 14.5,
-                  height: 1.45,
-                  color: Colors.black87,
+              Linkify(
+                onOpen: (link) async {
+                  final uri = Uri.tryParse(link.url);
+                  if (uri != null && await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                text: desc,
+                style: const TextStyle(fontSize: 15, height: 1.4),
+                linkStyle: const TextStyle(
+                  fontSize: 15,
+                  height: 1.4,
+                  color: Color(0xFF1DA1F2),
+                  decoration: TextDecoration.underline,
                 ),
               ),
               if (img.isNotEmpty) ...[
