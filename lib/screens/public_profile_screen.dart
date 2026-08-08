@@ -269,6 +269,10 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
                             Icons.location_on_outlined, 'Venezuela'),
                       ],
                     ),
+                    const SizedBox(height: 12),
+
+                    // 3 Ratings Section
+                    _buildThreeRatingsWidget(),
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -448,6 +452,414 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
       MaterialPageRoute(
         builder: (_) => _FullScreenImageViewer(imageUrl: imageUrl),
       ),
+    );
+  }
+
+  Widget _buildThreeRatingsWidget() {
+    if (_profileData == null) return const SizedBox.shrink();
+
+    final r1e = (_profileData!['rating1e'] is num) ? (_profileData!['rating1e'] as num).toInt() : 0;
+    final r1n = (_profileData!['rating1n'] ?? '').toString();
+    final r2e = (_profileData!['rating2e'] is num) ? (_profileData!['rating2e'] as num).toInt() : 0;
+    final r2n = (_profileData!['rating2n'] ?? '').toString();
+    final r3e = (_profileData!['rating3e'] is num) ? (_profileData!['rating3e'] as num).toInt() : 0;
+    final r3n = (_profileData!['rating3n'] ?? '').toString();
+
+    final ratings = [
+      {'e': r1e, 'n': r1n, 'default': 'Evaluación 1'},
+      {'e': r2e, 'n': r2n, 'default': 'Evaluación 2'},
+      {'e': r3e, 'n': r3n, 'default': 'Evaluación 3'},
+    ];
+
+    int validCount = 0;
+    int sum = 0;
+    for (var r in ratings) {
+      final score = r['e'] as int;
+      if (score > 0) {
+        sum += score;
+        validCount++;
+      }
+    }
+    final double avg = validCount > 0 ? sum / validCount : 0.0;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16181C),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2F3336)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.star_rounded, color: Colors.amber, size: 22),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Evaluaciones del Docente',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (validCount > 0) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                      ),
+                      child: Text(
+                        '${avg.toStringAsFixed(1)} ★',
+                        style: const TextStyle(
+                          color: Colors.amber,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              InkWell(
+                onTap: _showRatingEditDialog,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1DA1F2).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF1DA1F2)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.rate_review_outlined, color: Color(0xFF1DA1F2), size: 14),
+                      SizedBox(width: 4),
+                      Text(
+                        'Calificar',
+                        style: TextStyle(
+                          color: Color(0xFF1DA1F2),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Column(
+            children: List.generate(ratings.length, (index) {
+              final r = ratings[index];
+              final score = r['e'] as int;
+              final note = r['n'] as String;
+              final defaultTitle = r['default'] as String;
+              final title = note.isNotEmpty ? note : defaultTitle;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0E1114),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 14,
+                      backgroundColor: const Color(0xFF1DA1F2).withOpacity(0.2),
+                      child: Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          color: Color(0xFF1DA1F2),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (score == 0)
+                            const Text(
+                              'Sin calificar aún',
+                              style: TextStyle(
+                                color: Color(0xFF71767B),
+                                fontSize: 11,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Row(
+                      children: List.generate(5, (starIdx) {
+                        return Icon(
+                          starIdx < score ? Icons.star : Icons.star_border,
+                          color: score > 0 ? Colors.amber : Colors.grey.shade700,
+                          size: 18,
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRatingEditDialog() {
+    if (_profileData == null) return;
+
+    int tempR1e = (_profileData!['rating1e'] is num) ? (_profileData!['rating1e'] as num).toInt() : 0;
+    String tempR1n = (_profileData!['rating1n'] ?? '').toString();
+    int tempR2e = (_profileData!['rating2e'] is num) ? (_profileData!['rating2e'] as num).toInt() : 0;
+    String tempR2n = (_profileData!['rating2n'] ?? '').toString();
+    int tempR3e = (_profileData!['rating3e'] is num) ? (_profileData!['rating3e'] as num).toInt() : 0;
+    String tempR3n = (_profileData!['rating3n'] ?? '').toString();
+
+    final n1Controller = TextEditingController(text: tempR1n);
+    final n2Controller = TextEditingController(text: tempR2n);
+    final n3Controller = TextEditingController(text: tempR3n);
+
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Widget buildStarSelector(int currentVal, Function(int) onSelect) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(5, (idx) {
+                  final starVal = idx + 1;
+                  return IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: Icon(
+                      starVal <= currentVal ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 26,
+                    ),
+                    onPressed: () {
+                      setDialogState(() {
+                        onSelect(starVal);
+                      });
+                    },
+                  );
+                }),
+              );
+            }
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF16181C),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: Color(0xFF2F3336)),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.star_rate_rounded, color: Colors.amber),
+                  SizedBox(width: 8),
+                  Text(
+                    'Calificar Estudiante',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Asigna puntuación (1 a 5 estrellas) y observación para las 3 evaluaciones del perfil:',
+                      style: TextStyle(color: Color(0xFF71767B), fontSize: 13),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Rating 1
+                    const Text(
+                      'Evaluación 1:',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    const SizedBox(height: 4),
+                    buildStarSelector(tempR1e, (val) => tempR1e = val),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: n1Controller,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Ej. Rendimiento Académico',
+                        hintStyle: const TextStyle(color: Color(0xFF71767B)),
+                        filled: true,
+                        fillColor: const Color(0xFF0E1114),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFF2F3336)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Rating 2
+                    const Text(
+                      'Evaluación 2:',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    const SizedBox(height: 4),
+                    buildStarSelector(tempR2e, (val) => tempR2e = val),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: n2Controller,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Ej. Responsabilidad y Asistencia',
+                        hintStyle: const TextStyle(color: Color(0xFF71767B)),
+                        filled: true,
+                        fillColor: const Color(0xFF0E1114),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFF2F3336)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Rating 3
+                    const Text(
+                      'Evaluación 3:',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    const SizedBox(height: 4),
+                    buildStarSelector(tempR3e, (val) => tempR3e = val),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: n3Controller,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Ej. Participación y Actitud',
+                        hintStyle: const TextStyle(color: Color(0xFF71767B)),
+                        filled: true,
+                        fillColor: const Color(0xFF0E1114),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFF2F3336)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1DA1F2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          setDialogState(() => isSaving = true);
+                          try {
+                            final updates = {
+                              'rating1e': tempR1e,
+                              'rating1n': n1Controller.text.trim(),
+                              'rating2e': tempR2e,
+                              'rating2n': n2Controller.text.trim(),
+                              'rating3e': tempR3e,
+                              'rating3n': n3Controller.text.trim(),
+                            };
+
+                            await _supabase
+                                .schema('perfiles')
+                                .from('perfil_unificado')
+                                .update(updates)
+                                .eq('id', widget.profileId);
+
+                            if (mounted) {
+                              setState(() {
+                                _profileData!['rating1e'] = tempR1e;
+                                _profileData!['rating1n'] = n1Controller.text.trim();
+                                _profileData!['rating2e'] = tempR2e;
+                                _profileData!['rating2n'] = n2Controller.text.trim();
+                                _profileData!['rating3e'] = tempR3e;
+                                _profileData!['rating3n'] = n3Controller.text.trim();
+                              });
+                            }
+
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Calificaciones guardadas exitosamente'),
+                                  backgroundColor: Color(0xFF1DA1F2),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error al guardar calificaciones: $e'),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                          } finally {
+                            if (context.mounted) {
+                              setDialogState(() => isSaving = false);
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text('Guardar', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
