@@ -4,7 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'news_detail_screen.dart';
 
 class NewsScreen extends StatefulWidget {
-  const NewsScreen({super.key});
+  final Map<String, dynamic>? userProfile;
+
+  const NewsScreen({super.key, this.userProfile});
 
   @override
   State<NewsScreen> createState() => _NewsScreenState();
@@ -239,11 +241,23 @@ class _NewsScreenState extends State<NewsScreen> {
               itemCount: _newsList.length + 1,
               itemBuilder: (context, index) {
                 if (index == 0) {
-                  return _buildCreateNewsWidget();
+                  final profileType = widget.userProfile?['profile_type'];
+                  return (profileType == 'docente' || profileType == 'egresado')
+                      ? _buildCreateNewsWidget()
+                      : const SizedBox.shrink();
                 }
                 final rawNews = _newsList[index - 1];
                 final parsed = _parseNewsDesc(rawNews['desc_pub'] ?? '');
                 final imgUrl = rawNews['img_pub'] ?? '';
+
+                int commentsCount = 0;
+                if (rawNews['comentarios'] != null &&
+                    rawNews['comentarios'] is List) {
+                  final list = rawNews['comentarios'] as List;
+                  if (list.isNotEmpty && list.first['count'] != null) {
+                    commentsCount = list.first['count'] as int;
+                  }
+                }
 
                 final newsData = {
                   'id_pub': rawNews['id_pub'],
@@ -252,6 +266,7 @@ class _NewsScreenState extends State<NewsScreen> {
                   'imageUrl': imgUrl.isNotEmpty ? imgUrl : null,
                   'date': 'Publicación #${rawNews['id_pub']}',
                   'source': 'ConnectNet News',
+                  'commentsCount': commentsCount,
                 };
 
                 return Card(
@@ -337,6 +352,24 @@ class _NewsScreenState extends State<NewsScreen> {
                                   fontSize: 14,
                                   height: 1.4,
                                 ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.chat_bubble_outline,
+                                    size: 16,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '$commentsCount',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),

@@ -96,9 +96,21 @@ class _LoginScreenState extends State<LoginScreen>
             widget.onLoginSuccess();
           }
         } else {
+          final nameParts = _nameController.text.trim().split(' ');
+          final firstName = nameParts.isNotEmpty ? nameParts.first : '';
+          final lastName = nameParts.length > 1
+              ? nameParts.sublist(1).join(' ')
+              : '';
+          final fullName = _nameController.text.trim();
+
           final response = await supabase.auth.signUp(
             email: _emailController.text.trim(),
             password: _passwordController.text,
+            data: {
+              'full_name': fullName,
+              'first_name': firstName,
+              'last_name': lastName,
+            },
           );
 
           final user = response.user;
@@ -106,11 +118,6 @@ class _LoginScreenState extends State<LoginScreen>
             throw const AuthException('No se pudo crear el usuario.');
           }
 
-          final nameParts = _nameController.text.trim().split(' ');
-          final firstName = nameParts.isNotEmpty ? nameParts.first : '';
-          final lastName = nameParts.length > 1
-              ? nameParts.sublist(1).join(' ')
-              : '';
           final email = _emailController.text.trim();
           const defaultPfp =
               'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
@@ -389,9 +396,15 @@ class _LoginScreenState extends State<LoginScreen>
                             if (value == null || value.isEmpty) {
                               return 'Por favor ingresa tu correo';
                             }
-                            final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-                            if (!emailRegex.hasMatch(value)) {
-                              return 'Ingresa un correo electrónico válido';
+                            if (_isLogin) {
+                              final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+                              if (!emailRegex.hasMatch(value)) {
+                                return 'Ingresa un correo electrónico válido';
+                              }
+                            } else {
+                              if (!value.trim().endsWith('@unet.edu.ve')) {
+                                return 'El correo debe terminar en @unet.edu.ve';
+                              }
                             }
                             return null;
                           },

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:typed_data';
+import 'public_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -20,7 +20,12 @@ class _ProfileScreenState extends State<ProfileScreen>
   Map<String, dynamic>? _profileData;
   final _supabase = Supabase.instance.client;
 
-  double _profileRating = 0.0;
+  int _rating1e = 0;
+  String _rating1n = '';
+  int _rating2e = 0;
+  String _rating2n = '';
+  int _rating3e = 0;
+  String _rating3n = '';
   String _profileName = '';
   String _profileImageUrl =
       'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
@@ -69,7 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Future<void> _fetchUserPosts() async {
     if (_profileData == null) return;
-    
+
     try {
       final response = await _supabase
           .schema('publicaciones')
@@ -87,7 +92,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             commentsCount = list.first['count'] as int;
           }
         }
-        
+
         fetchedPosts.add({
           'id_enc': encargo['id_enc'],
           'avatarUrl': _getProfilePicUrl(),
@@ -95,7 +100,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           'handle': _getHandle(),
           'time': 'Reciente',
           'content': encargo['desc_enc'] ?? '',
-          'hasImage': (encargo['img_enc'] != null && encargo['img_enc'].toString().isNotEmpty),
+          'hasImage':
+              (encargo['img_enc'] != null &&
+              encargo['img_enc'].toString().isNotEmpty),
           'imageUrl': encargo['img_enc'] ?? '',
           'comments': commentsCount,
           'retweets': 0,
@@ -197,6 +204,69 @@ class _ProfileScreenState extends State<ProfileScreen>
         });
       }
     }
+  }
+
+  void _updateLocalProfileState(Map<String, dynamic> data) {
+    final profileType = data['profile_type'] ?? 'estudiante';
+
+    switch (profileType) {
+      case 'docente':
+        _profileName =
+            '${data['nombres_prof'] ?? ''} ${data['apellidos_prof'] ?? ''}'
+                .trim();
+        _profileHandle = (data['correo_prof'] ?? '')
+            .toString()
+            .split('@')
+            .first;
+        _profileBio = [
+          data['mater1'],
+          data['mater2'],
+          data['mater3'],
+        ].where((m) => m != null && m.toString().isNotEmpty).join(', ');
+        if (_profileBio.isNotEmpty) {
+          _profileBio = 'Materias: $_profileBio';
+        }
+        break;
+      case 'egresado':
+        _profileName =
+            '${data['nombres_pro'] ?? ''} ${data['apellidos_pro'] ?? ''}'
+                .trim();
+        _profileHandle = (data['correo_pro'] ?? '').toString().split('@').first;
+        _profileBio = data['titulo'] ?? '';
+        break;
+      default: // estudiante
+        _profileName = '${data['nombres'] ?? ''} ${data['apellidos'] ?? ''}'
+            .trim();
+        _profileHandle = (data['correo'] ?? '').toString().split('@').first;
+        final semestre = data['semestre'] ?? '';
+        final experiencia = data['experiencia'] ?? '';
+        _profileBio = 'Semestre: $semestre';
+        if (experiencia.toString().isNotEmpty) {
+          _profileBio += ' · $experiencia';
+        }
+        break;
+    }
+
+    if (_profileName.isEmpty) _profileName = 'Usuario';
+    if (_profileHandle.isEmpty) _profileHandle = 'usuario';
+
+    _profileImageUrl =
+        data['pfp'] ??
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
+
+    // Load 3 ratings
+    _rating1e = (data['rating1e'] is num)
+        ? (data['rating1e'] as num).toInt()
+        : 0;
+    _rating1n = (data['rating1n'] ?? '').toString();
+    _rating2e = (data['rating2e'] is num)
+        ? (data['rating2e'] as num).toInt()
+        : 0;
+    _rating2n = (data['rating2n'] ?? '').toString();
+    _rating3e = (data['rating3e'] is num)
+        ? (data['rating3e'] as num).toInt()
+        : 0;
+    _rating3n = (data['rating3n'] ?? '').toString();
   }
 
   String _getDisplayName() {
@@ -395,17 +465,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     const SizedBox(height: 16),
 
-                    // Rating
-                    const Text(
-                      'Calificar Perfil',
-                      style: TextStyle(
-                        color: Color(0xFF71767B),
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    _buildRatingStars(),
+                    // 3 Ratings
+                    _buildThreeRatingsWidget(),
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -649,16 +710,27 @@ class _ProfileScreenState extends State<ProfileScreen>
                     if (user != null) {
                       try {
                         String? uploadedUrl;
-                        if (selectedImageBytes != null && selectedImageName != null) {
-                          final ext = selectedImageName!.split('.').last.toLowerCase();
-                          final path = 'avatars/${user.id}/${DateTime.now().millisecondsSinceEpoch}.$ext';
-                          
-                          await _supabase.storage.from('avatars').uploadBinary(
-                            path,
-                            selectedImageBytes!,
-                            fileOptions: FileOptions(contentType: 'image/$ext'),
-                          );
-                          uploadedUrl = _supabase.storage.from('avatars').getPublicUrl(path);
+                        if (selectedImageBytes != null &&
+                            selectedImageName != null) {
+                          final ext = selectedImageName!
+                              .split('.')
+                              .last
+                              .toLowerCase();
+                          final path =
+                              'avatars/${user.id}/${DateTime.now().millisecondsSinceEpoch}.$ext';
+
+                          await _supabase.storage
+                              .from('avatars')
+                              .uploadBinary(
+                                path,
+                                selectedImageBytes!,
+                                fileOptions: FileOptions(
+                                  contentType: 'image/$ext',
+                                ),
+                              );
+                          uploadedUrl = _supabase.storage
+                              .from('avatars')
+                              .getPublicUrl(path);
                         }
 
                         final updates = {
@@ -670,8 +742,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 int.tryParse(semestreController.text) ?? 1,
                           if (selectedType == 'profesional')
                             'titulo': tituloController.text,
-                          if (uploadedUrl != null)
-                            'pfp': uploadedUrl,
+                          if (uploadedUrl != null) 'pfp': uploadedUrl,
                         };
 
                         await _supabase
@@ -690,7 +761,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                         }
                       }
                     }
-                    if (selectedImagePath != null && selectedImageBytes == null) {
+                    if (selectedImagePath != null &&
+                        selectedImageBytes == null) {
                       // This means they didn't pick a new image, keep the old logic just in case
                       setState(() {
                         _profileImagePath = selectedImagePath;
@@ -738,46 +810,467 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  bool _profileRated = false;
+  Widget _buildThreeRatingsWidget() {
+    final ratings = [
+      {'e': _rating1e, 'n': _rating1n, 'default': 'Evaluación 1'},
+      {'e': _rating2e, 'n': _rating2n, 'default': 'Evaluación 2'},
+      {'e': _rating3e, 'n': _rating3n, 'default': 'Evaluación 3'},
+    ];
 
-  Widget _buildRatingStars() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(5, (index) {
-        return IconButton(
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-          icon: Icon(
-            index < _profileRating ? Icons.star : Icons.star_border,
-            color: Colors.amber,
-            size: 28,
+    int validCount = 0;
+    int sum = 0;
+    for (var r in ratings) {
+      final score = r['e'] as int;
+      if (score > 0) {
+        sum += score;
+        validCount++;
+      }
+    }
+    final double avg = validCount > 0 ? sum / validCount : 0.0;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16181C),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2F3336)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.star_rounded, color: Colors.amber, size: 22),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Evaluaciones del Docente',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (validCount > 0) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.amber.withOpacity(0.5),
+                        ),
+                      ),
+                      child: Text(
+                        '${avg.toStringAsFixed(1)} ★',
+                        style: const TextStyle(
+                          color: Colors.amber,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              InkWell(
+                onTap: _showRatingEditDialog,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1DA1F2).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF1DA1F2)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.edit_rounded,
+                        color: Color(0xFF1DA1F2),
+                        size: 14,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Calificar',
+                        style: TextStyle(
+                          color: Color(0xFF1DA1F2),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          onPressed: () {
-            if (_profileRated) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Ya has calificado este perfil'),
-                  backgroundColor: Color(0xFF1DA1F2),
+          const SizedBox(height: 12),
+          Column(
+            children: List.generate(3, (index) {
+              final r = ratings[index];
+              final score = r['e'] as int;
+              final note = r['n'] as String;
+              final defaultTitle = r['default'] as String;
+              final title = note.isNotEmpty ? note : defaultTitle;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0E1114),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 14,
+                      backgroundColor: const Color(0xFF1DA1F2).withOpacity(0.2),
+                      child: Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          color: Color(0xFF1DA1F2),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (score == 0)
+                            const Text(
+                              'Sin calificar aún',
+                              style: TextStyle(
+                                color: Color(0xFF71767B),
+                                fontSize: 11,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Row(
+                      children: List.generate(5, (starIdx) {
+                        return Icon(
+                          starIdx < score ? Icons.star : Icons.star_border,
+                          color: score > 0
+                              ? Colors.amber
+                              : Colors.grey.shade700,
+                          size: 18,
+                        );
+                      }),
+                    ),
+                  ],
                 ),
               );
-              return;
-            }
-            setState(() {
-              _profileRating = index + 1.0;
-              _profileRated = true;
-            });
+            }),
+          ),
+        ],
+      ),
+    );
+  }
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Calificaste este perfil con ${_profileRating.toInt()} estrellas',
-                ),
-                backgroundColor: const Color(0xFF1DA1F2),
+  void _showRatingEditDialog() {
+    int tempR1e = _rating1e;
+    String tempR1n = _rating1n;
+    int tempR2e = _rating2e;
+    String tempR2n = _rating2n;
+    int tempR3e = _rating3e;
+    String tempR3n = _rating3n;
+
+    final n1Controller = TextEditingController(text: tempR1n);
+    final n2Controller = TextEditingController(text: tempR2n);
+    final n3Controller = TextEditingController(text: tempR3n);
+
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Widget buildStarSelector(int currentVal, Function(int) onSelect) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(5, (idx) {
+                  final starVal = idx + 1;
+                  return IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: Icon(
+                      starVal <= currentVal ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 26,
+                    ),
+                    onPressed: () {
+                      setDialogState(() {
+                        onSelect(starVal);
+                      });
+                    },
+                  );
+                }),
+              );
+            }
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF16181C),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: Color(0xFF2F3336)),
               ),
+              title: const Row(
+                children: [
+                  Icon(Icons.star_rate_rounded, color: Colors.amber),
+                  SizedBox(width: 8),
+                  Text(
+                    'Calificar Perfil',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Asigna puntuación (1 a 5 estrellas) y observación para las 3 evaluaciones:',
+                      style: TextStyle(color: Color(0xFF71767B), fontSize: 13),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Rating 1
+                    const Text(
+                      'Competencia 1:',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    buildStarSelector(tempR1e, (val) => tempR1e = val),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: n1Controller,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Ej. Matemáticas',
+                        hintStyle: const TextStyle(color: Color(0xFF71767B)),
+                        filled: true,
+                        fillColor: const Color(0xFF0E1114),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF2F3336),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Rating 2
+                    const Text(
+                      'Competencia 2:',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    buildStarSelector(tempR2e, (val) => tempR2e = val),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: n2Controller,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Ej. Inglés',
+                        hintStyle: const TextStyle(color: Color(0xFF71767B)),
+                        filled: true,
+                        fillColor: const Color(0xFF0E1114),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF2F3336),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Rating 3
+                    const Text(
+                      'Competencia 3:',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    buildStarSelector(tempR3e, (val) => tempR3e = val),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: n3Controller,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Ej. Programación',
+                        hintStyle: const TextStyle(color: Color(0xFF71767B)),
+                        filled: true,
+                        fillColor: const Color(0xFF0E1114),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF2F3336),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1DA1F2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          setDialogState(() => isSaving = true);
+                          try {
+                            final profileId = _profileData?['id'];
+                            final userId = _supabase.auth.currentUser?.id;
+
+                            final updates = {
+                              'rating1e': tempR1e,
+                              'rating1n': n1Controller.text.trim(),
+                              'rating2e': tempR2e,
+                              'rating2n': n2Controller.text.trim(),
+                              'rating3e': tempR3e,
+                              'rating3n': n3Controller.text.trim(),
+                            };
+
+                            if (profileId != null) {
+                              await _supabase
+                                  .schema('perfiles')
+                                  .from('perfil_unificado')
+                                  .update(updates)
+                                  .eq('id', profileId);
+                            } else if (userId != null) {
+                              await _supabase
+                                  .schema('perfiles')
+                                  .from('perfil_unificado')
+                                  .update(updates)
+                                  .eq('user_id', userId);
+                            }
+
+                            if (mounted) {
+                              setState(() {
+                                _rating1e = tempR1e;
+                                _rating1n = n1Controller.text.trim();
+                                _rating2e = tempR2e;
+                                _rating2n = n2Controller.text.trim();
+                                _rating3e = tempR3e;
+                                _rating3n = n3Controller.text.trim();
+                              });
+                            }
+
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Calificaciones guardadas exitosamente',
+                                  ),
+                                  backgroundColor: Color(0xFF1DA1F2),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Error al guardar calificaciones: $e',
+                                  ),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                          } finally {
+                            if (context.mounted) {
+                              setDialogState(() => isSaving = false);
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Guardar',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                ),
+              ],
             );
           },
         );
-      }),
+      },
     );
   }
 
@@ -830,9 +1323,24 @@ class _ProfileScreenState extends State<ProfileScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Avatar
-                CircleAvatar(
-                  radius: 20,
-                  backgroundImage: NetworkImage(tweet['avatarUrl']),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () {
+                    // Navigate to the user's profile
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PublicProfileScreen(
+                          profileId: tweet['profileId'] as int,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: CircleAvatar(
+                    radius: 20,
+                    backgroundImage: NetworkImage(tweet['avatarUrl']),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 // Content
