@@ -317,8 +317,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF161C22),
-        title: const Text('Eliminar publicación', style: TextStyle(color: Colors.white)),
-        content: const Text('¿Estás seguro de que deseas eliminar esta publicación?', style: TextStyle(color: Colors.grey)),
+        title: const Text(
+          'Eliminar publicación',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          '¿Estás seguro de que deseas eliminar esta publicación?',
+          style: TextStyle(color: Colors.grey),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -328,7 +334,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                await _supabase.schema('publicaciones').from('encargo').delete().eq('id_enc', postId);
+                await _supabase
+                    .schema('publicaciones')
+                    .from('encargo')
+                    .delete()
+                    .eq('id_enc', postId);
                 await _fetchEncargos();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -395,9 +405,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ? Drawer(
               child: Container(
                 color: Colors.white,
-                child: SafeArea(
-                  child: _buildSidebarContents(),
-                ),
+                child: SafeArea(child: _buildSidebarContents()),
               ),
             )
           : null,
@@ -416,7 +424,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               child: _buildSidebarContents(),
             ),
-          
+
           // Main Content
           Expanded(
             child: RefreshIndicator(
@@ -424,10 +432,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: const Color(0xFF003E90),
               child: _isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(color: Color(0xFF003E90)),
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF003E90),
+                      ),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
                       itemCount: _encargos.length + 2,
                       itemBuilder: (context, index) {
                         if (index == 0) return _buildCourseBannerCard();
@@ -509,7 +522,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: const Color(0xFF003E90),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Icon(Icons.school, color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.school,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -522,7 +539,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   const Text(
-                    'VIRTUAL',
+                    'NETCONNECT',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w500,
@@ -534,22 +551,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (isWideScreen) ...[
                     _buildTopNavLink('Página Principal', true),
                     _buildTopNavLink('Noticias', false, onTap: _openNewsScreen),
-                    _buildTopNavLink('Mensajes', false, onTap: _openConversationsScreen),
-                    _buildTopNavLink('Mi Perfil', false, onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ProfileScreen(onLogout: widget.onLogout ?? () {}),
-                        ),
-                      );
-                    }),
+                    _buildTopNavLink(
+                      'Mensajes',
+                      false,
+                      onTap: _openConversationsScreen,
+                    ),
+                    _buildTopNavLink(
+                      'Mi Perfil',
+                      false,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProfileScreen(
+                              onLogout: widget.onLogout ?? () {},
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                     const SizedBox(width: 20),
                   ],
                   // Right icons
                   Stack(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.notifications_none, color: Colors.black87),
+                        icon: const Icon(
+                          Icons.notifications_none,
+                          color: Colors.black87,
+                        ),
                         onPressed: () {},
                       ),
                       Positioned(
@@ -579,7 +609,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.chat_bubble_outline, color: Colors.black87),
+                    icon: const Icon(
+                      Icons.chat_bubble_outline,
+                      color: Colors.black87,
+                    ),
                     onPressed: _openConversationsScreen,
                   ),
                 ],
@@ -596,7 +629,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 _buildBlueBarTab('Publicaciones', true),
                 _buildBlueBarTab('Noticias', false, onTap: _openNewsScreen),
-                _buildBlueBarTab('Mensajería', false, onTap: _openConversationsScreen),
+                _buildBlueBarTab(
+                  'Mensajería',
+                  false,
+                  onTap: _openConversationsScreen,
+                ),
               ],
             ),
           ),
@@ -626,12 +663,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       decoration: BoxDecoration(
         border: isActive
-            ? const Border(
-                bottom: BorderSide(
-                  color: Colors.white,
-                  width: 3.0,
-                ),
-              )
+            ? const Border(bottom: BorderSide(color: Colors.white, width: 3.0))
             : null,
       ),
       margin: const EdgeInsets.only(right: 24),
@@ -694,7 +726,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        (_userProfile!['profile_type'] ?? 'estudiante').toString().toUpperCase(),
+                        (_userProfile!['profile_type'] ?? 'estudiante')
+                            .toString()
+                            .toUpperCase(),
                         style: const TextStyle(
                           fontSize: 10,
                           color: Color(0xFF003E90),
@@ -711,43 +745,75 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const Divider(height: 24, indent: 16, endIndent: 16),
 
         // Functional navigation items
-        _buildSidebarItem(Icons.home_outlined, 'Inicio', isSelected: true, onTap: () {
-          if (isMobile) Navigator.pop(context);
-        }),
-        _buildSidebarItem(Icons.newspaper_outlined, 'Noticias', onTap: () {
-          if (isMobile) Navigator.pop(context);
-          _openNewsScreen();
-        }),
-        _buildSidebarItem(Icons.chat_bubble_outline, 'Mensajería', onTap: () {
-          if (isMobile) Navigator.pop(context);
-          _openConversationsScreen();
-        }),
-        _buildSidebarItem(Icons.person_outline, 'Mi Perfil', onTap: () {
-          if (isMobile) Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProfileScreen(onLogout: widget.onLogout ?? () {}),
-            ),
-          );
-        }),
+        _buildSidebarItem(
+          Icons.home_outlined,
+          'Inicio',
+          isSelected: true,
+          onTap: () {
+            if (isMobile) Navigator.pop(context);
+          },
+        ),
+        _buildSidebarItem(
+          Icons.newspaper_outlined,
+          'Noticias',
+          onTap: () {
+            if (isMobile) Navigator.pop(context);
+            _openNewsScreen();
+          },
+        ),
+        _buildSidebarItem(
+          Icons.chat_bubble_outline,
+          'Mensajería',
+          onTap: () {
+            if (isMobile) Navigator.pop(context);
+            _openConversationsScreen();
+          },
+        ),
+        _buildSidebarItem(
+          Icons.person_outline,
+          'Mi Perfil',
+          onTap: () {
+            if (isMobile) Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    ProfileScreen(onLogout: widget.onLogout ?? () {}),
+              ),
+            );
+          },
+        ),
 
         const Divider(height: 32, indent: 16, endIndent: 16),
 
-        _buildSidebarItem(Icons.logout, 'Cerrar Sesión', color: Colors.redAccent, onTap: () {
-          if (isMobile) Navigator.pop(context);
-          if (widget.onLogout != null) widget.onLogout!();
-        }),
+        _buildSidebarItem(
+          Icons.logout,
+          'Cerrar Sesión',
+          color: Colors.redAccent,
+          onTap: () {
+            if (isMobile) Navigator.pop(context);
+            if (widget.onLogout != null) widget.onLogout!();
+          },
+        ),
       ],
     );
   }
 
-  Widget _buildSidebarItem(IconData icon, String title, {bool isSelected = false, VoidCallback? onTap, Color? color}) {
-    final itemColor = color ?? (isSelected ? const Color(0xFF003E90) : Colors.black54);
+  Widget _buildSidebarItem(
+    IconData icon,
+    String title, {
+    bool isSelected = false,
+    VoidCallback? onTap,
+    Color? color,
+  }) {
+    final itemColor =
+        color ?? (isSelected ? const Color(0xFF003E90) : Colors.black54);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF003E90).withOpacity(0.08) : Colors.transparent,
+        color: isSelected
+            ? const Color(0xFF003E90).withOpacity(0.08)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
@@ -757,7 +823,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Text(
           title,
           style: TextStyle(
-            color: color ?? (isSelected ? const Color(0xFF003E90) : Colors.black87),
+            color:
+                color ??
+                (isSelected ? const Color(0xFF003E90) : Colors.black87),
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             fontSize: 13,
           ),
@@ -780,7 +848,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           insetPadding: const EdgeInsets.all(16),
           child: Container(
             height: MediaQuery.of(context).size.height * 0.85,
-            width: MediaQuery.of(context).size.width > 800 ? 700 : double.infinity,
+            width: MediaQuery.of(context).size.width > 800
+                ? 700
+                : double.infinity,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -806,18 +876,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildCourseBannerCard() {
     final userName = _getSenderName(_userProfile);
-    final profileType = (_userProfile?['profile_type'] ?? 'estudiante').toString();
+    final profileType = (_userProfile?['profile_type'] ?? 'estudiante')
+        .toString();
     final roleBadgeLabel = profileType == 'docente'
         ? 'Docente'
         : profileType == 'egresado'
-            ? 'Egresado'
-            : 'Estudiante';
+        ? 'Egresado'
+        : 'Estudiante';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 20),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       elevation: 0,
       clipBehavior: Clip.antiAlias,
       child: Container(
@@ -842,7 +911,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       // Role badge
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(20),
@@ -861,10 +933,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 12),
                       const Text(
                         '¡Bienvenido a',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white70,
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.white70),
                       ),
                       const Text(
                         'UnetConnect!',
@@ -891,16 +960,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          _buildWelcomeChip(Icons.article_outlined, 'Noticias', _openNewsScreen),
-                          _buildWelcomeChip(Icons.chat_bubble_outline, 'Mensajes', _openConversationsScreen),
-                          _buildWelcomeChip(Icons.person_outline, 'Mi Perfil', () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ProfileScreen(onLogout: widget.onLogout ?? () {}),
-                              ),
-                            );
-                          }),
+                          _buildWelcomeChip(
+                            Icons.article_outlined,
+                            'Noticias',
+                            _openNewsScreen,
+                          ),
+                          _buildWelcomeChip(
+                            Icons.chat_bubble_outline,
+                            'Mensajes',
+                            _openConversationsScreen,
+                          ),
+                          _buildWelcomeChip(
+                            Icons.person_outline,
+                            'Mi Perfil',
+                            () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ProfileScreen(
+                                    onLogout: widget.onLogout ?? () {},
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ],
@@ -920,7 +1003,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         CircleAvatar(
                           radius: 40,
                           backgroundColor: Colors.white.withOpacity(0.15),
-                          backgroundImage: NetworkImage(_getSenderPfp(_userProfile)),
+                          backgroundImage: NetworkImage(
+                            _getSenderPfp(_userProfile),
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Image.asset(
@@ -928,7 +1013,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           height: 28,
                           color: Colors.white.withOpacity(0.8),
                           errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.school, color: Colors.white70, size: 28),
+                              const Icon(
+                                Icons.school,
+                                color: Colors.white70,
+                                size: 28,
+                              ),
                         ),
                         const SizedBox(height: 4),
                         const Text(
@@ -995,10 +1084,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              backgroundImage: NetworkImage(pfp),
-              radius: 20,
-            ),
+            CircleAvatar(backgroundImage: NetworkImage(pfp), radius: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -1011,7 +1097,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     decoration: InputDecoration(
                       hintText: '¿Qué está pasando hoy en el curso?',
                       border: InputBorder.none,
-                      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 15),
+                      hintStyle: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 15,
+                      ),
                     ),
                   ),
                   if (_selectedImagePath != null) ...[
@@ -1030,7 +1119,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   height: 100,
                                   color: Colors.grey.shade100,
                                   alignment: Alignment.center,
-                                  child: const Text('Imagen seleccionada', style: TextStyle(color: Colors.black54)),
+                                  child: const Text(
+                                    'Imagen seleccionada',
+                                    style: TextStyle(color: Colors.black54),
+                                  ),
                                 ),
                           ),
                         ),
@@ -1041,7 +1133,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             backgroundColor: Colors.black54,
                             radius: 16,
                             child: IconButton(
-                              icon: const Icon(Icons.close, color: Colors.white, size: 16),
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 16,
+                              ),
                               onPressed: () {
                                 setState(() {
                                   _selectedImagePath = null;
@@ -1061,7 +1157,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.image_outlined, color: Color(0xFF003E90)),
+                        icon: const Icon(
+                          Icons.image_outlined,
+                          color: Color(0xFF003E90),
+                        ),
                         onPressed: () async {
                           final picker = ImagePicker();
                           final picked = await picker.pickImage(
@@ -1085,7 +1184,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
                         ),
                         child: _isPosting
                             ? const SizedBox(
@@ -1098,9 +1200,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               )
                             : const Text(
                                 'Publicar',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                       ),
                     ],
@@ -1183,7 +1283,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.blue.shade50,
                                 borderRadius: BorderRadius.circular(4),
@@ -1212,7 +1315,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   if (_userProfile?['profile_type'] == 'docente')
                     IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.redAccent,
+                        size: 20,
+                      ),
                       onPressed: () => _deletePost(encargo['id_enc']),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -1306,7 +1413,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
@@ -1577,7 +1687,8 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
                       final sender = coment['sender'] as Map<String, dynamic>?;
                       final senderName = _getSenderName(sender);
                       final content = coment['content'] ?? '';
-                      final senderType = coment['sender_profile_type'] ?? 'estudiante';
+                      final senderType =
+                          coment['sender_profile_type'] ?? 'estudiante';
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -1593,7 +1704,9 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
                             children: [
                               CircleAvatar(
                                 radius: 16,
-                                backgroundColor: const Color(0xFF003E90).withOpacity(0.1),
+                                backgroundColor: const Color(
+                                  0xFF003E90,
+                                ).withOpacity(0.1),
                                 child: Text(
                                   senderName.isNotEmpty
                                       ? senderName[0].toUpperCase()
@@ -1674,7 +1787,10 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: TextField(
                       controller: _commentController,
-                      style: const TextStyle(color: Colors.black87, fontSize: 14),
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 14,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Escribe tu respuesta...',
                         hintStyle: TextStyle(color: Colors.grey.shade500),
@@ -1692,7 +1808,10 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                     elevation: 0,
                   ),
                   child: _isSending
@@ -1706,7 +1825,10 @@ class _EncargoCommentModalState extends State<_EncargoCommentModal> {
                         )
                       : const Text(
                           'Responder',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                 ),
               ],
