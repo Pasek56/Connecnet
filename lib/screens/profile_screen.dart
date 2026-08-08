@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -41,35 +41,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _fetchProfile();
-  }
-
-  void _updateLocalProfileState(Map<String, dynamic> data) {
-    _profileName = '${data['nombres'] ?? ''} ${data['apellidos'] ?? ''}'.trim();
-    if (_profileName.isEmpty) _profileName = 'Usuario';
-
-    if (data['pfp'] != null && data['pfp'].toString().isNotEmpty) {
-      _profileImageUrl = data['pfp'];
-    }
-
-    final handleName =
-        data['nombres'] != null && data['nombres'].toString().isNotEmpty
-        ? data['nombres'].toString().split(' ').first
-        : 'User';
-    final handleLast =
-        data['apellidos'] != null && data['apellidos'].toString().isNotEmpty
-        ? data['apellidos'].toString().split(' ').first
-        : '';
-    _profileHandle = '@${handleName}_$handleLast'.replaceAll(' ', '');
-
-    if (data['profile_type'] == 'estudiante') {
-      final semestre = data['semestre'] ?? 1;
-      _profileBio = 'Estudiante de $semestre Semestre.';
-    } else if (data['profile_type'] == 'profesional') {
-      final titulo = data['titulo'] ?? 'Profesional';
-      _profileBio = '$titulo';
-    } else {
-      _profileBio = 'Usuario de ConnectNet';
-    }
   }
 
   Future<void> _fetchUserPosts() async {

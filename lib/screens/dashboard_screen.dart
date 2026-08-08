@@ -433,6 +433,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
   }
 
+  Future<String?> _uploadImageToStorage(
+    Uint8List bytes,
+    String filename,
+  ) async {
+    try {
+      final ext = filename.split('.').last.toLowerCase();
+      final userId = _supabase.auth.currentUser?.id ?? 'unknown';
+      final path = 'posts/$userId/${DateTime.now().millisecondsSinceEpoch}.$ext';
+      await _supabase.storage.from('avatars').uploadBinary(
+        path,
+        bytes,
+        fileOptions: FileOptions(contentType: 'image/$ext'),
+      );
+      return _supabase.storage.from('avatars').getPublicUrl(path);
+    } catch (e) {
+      debugPrint('Error al subir imagen: $e');
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isWideScreen = MediaQuery.of(context).size.width > 800;
@@ -1208,8 +1228,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             maxWidth: 800,
                           );
                           if (picked != null) {
+                            final bytes = await picked.readAsBytes();
                             setState(() {
                               _selectedImagePath = picked.path;
+                              _selectedImageBytes = bytes;
+                              _selectedImageName = picked.name;
                             });
                           }
                         },
