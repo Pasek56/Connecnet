@@ -135,13 +135,30 @@ class _ConversationsScreenState extends State<ConversationsScreen>
         child: FloatingActionButton(
           heroTag: 'btn_new_conversation',
           onPressed: () async {
-            final result = await Navigator.push<bool>(
-              context,
-              MaterialPageRoute(
-                builder: (context) => NewConversationScreen(
-                  userProfile: widget.userProfile,
-                ),
-              ),
+            final result = await showDialog<bool>(
+              context: context,
+              builder: (context) {
+                return Dialog(
+                  backgroundColor: Colors.transparent,
+                  insetPadding: const EdgeInsets.all(16),
+                  child: Container(
+                    height: MediaQuery.of(context).size.height * 0.85,
+                    width: MediaQuery.of(context).size.width > 800
+                        ? 700
+                        : double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.all(Radius.circular(16)),
+                      child: NewConversationScreen(
+                        userProfile: widget.userProfile,
+                      ),
+                    ),
+                  ),
+                );
+              },
             );
             if (result == true) {
               _loadConversations();
@@ -196,13 +213,30 @@ class _ConversationsScreenState extends State<ConversationsScreen>
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () async {
-                final result = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => NewConversationScreen(
-                      userProfile: widget.userProfile,
-                    ),
-                  ),
+                final result = await showDialog<bool>(
+                  context: context,
+                  builder: (context) {
+                    return Dialog(
+                      backgroundColor: Colors.transparent,
+                      insetPadding: const EdgeInsets.all(16),
+                      child: Container(
+                        height: MediaQuery.of(context).size.height * 0.85,
+                        width: MediaQuery.of(context).size.width > 800
+                            ? 700
+                            : double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.all(Radius.circular(16)),
+                          child: NewConversationScreen(
+                            userProfile: widget.userProfile,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 );
                 if (result == true) {
                   _loadConversations();
@@ -258,15 +292,32 @@ class _ConversationsScreenState extends State<ConversationsScreen>
       curve: Curves.easeOut,
       child: InkWell(
         onTap: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ChatScreen(
-                conversationId: conversation['id'] as String,
-                currentProfile: widget.userProfile!,
-                otherProfile: otherProfile ?? {},
-              ),
-            ),
+          await showDialog(
+            context: context,
+            builder: (context) {
+              return Dialog(
+                backgroundColor: Colors.transparent,
+                insetPadding: const EdgeInsets.all(16),
+                child: Container(
+                  height: MediaQuery.of(context).size.height * 0.85,
+                  width: MediaQuery.of(context).size.width > 800
+                      ? 700
+                      : double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.all(Radius.circular(16)),
+                    child: ChatScreen(
+                      conversationId: conversation['id'] as String,
+                      currentProfile: widget.userProfile!,
+                      otherProfile: otherProfile ?? {},
+                    ),
+                  ),
+                ),
+              );
+            },
           );
           _loadConversations();
         },
