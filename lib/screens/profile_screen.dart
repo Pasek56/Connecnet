@@ -22,6 +22,10 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   int _rating1e = 0;
   String _rating1n = '';
+  int _rating2e = 0;
+  String _rating2n = '';
+  int _rating3e = 0;
+  String _rating3n = '';
   String _profileName = '';
   String _profileImageUrl =
       'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
@@ -111,13 +115,14 @@ class _ProfileScreenState extends State<ProfileScreen>
           });
           await _fetchUserPosts();
         } else {
-          // Si no existe, crear uno por defecto
-          final nameParts = (user.email ?? 'Usuario')
-              .split('@')
-              .first
-              .split('.');
-          final name = nameParts.first;
-          final lastName = nameParts.length > 1 ? nameParts[1] : '';
+          // Fallback: create a default profile using auth metadata if available
+          final fullName =
+              (user.userMetadata?['full_name'] as String? ?? '').trim();
+          final nameParts =
+              fullName.isNotEmpty ? fullName.split(' ') : [];
+          final name = nameParts.isNotEmpty ? nameParts.first : 'Usuario';
+          final lastName =
+              nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
 
           final defaultProfile = {
             'user_id': user.id,
@@ -156,6 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           await _fetchUserPosts();
         }
       }
+
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -222,11 +228,19 @@ class _ProfileScreenState extends State<ProfileScreen>
         data['pfp'] ??
         'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
 
-    // Load 1 rating
+    // Load 3 ratings
     _rating1e = (data['rating1e'] is num)
         ? (data['rating1e'] as num).toInt()
         : 0;
     _rating1n = (data['rating1n'] ?? '').toString();
+    _rating2e = (data['rating2e'] is num)
+        ? (data['rating2e'] as num).toInt()
+        : 0;
+    _rating2n = (data['rating2n'] ?? '').toString();
+    _rating3e = (data['rating3e'] is num)
+        ? (data['rating3e'] as num).toInt()
+        : 0;
+    _rating3n = (data['rating3n'] ?? '').toString();
   }
 
   String _getDisplayName() {
@@ -553,48 +567,37 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue:
-                          [
-                            'estudiante',
-                            'docente',
-                            'egresado',
-                          ].contains(selectedType)
-                          ? selectedType
-                          : 'estudiante',
-                      dropdownColor: const Color(0xFF161C22),
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: 'Tipo de Perfil',
-                        labelStyle: TextStyle(color: Colors.grey),
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.grey),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF1DA1F2)),
-                        ),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 10,
                       ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'estudiante',
-                          child: Text('Estudiante'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'docente',
-                          child: Text('Docente'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'egresado',
-                          child: Text('Egresado'),
-                        ),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          setStateDialog(() {
-                            selectedType = val;
-                          });
-                        }
-                      },
+                      decoration: const BoxDecoration(
+                        border: Border(bottom: BorderSide(color: Colors.grey)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Tipo de Perfil (No modificable)',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            selectedType == 'docente'
+                                ? 'Docente'
+                                : selectedType == 'egresado'
+                                ? 'Egresado'
+                                : 'Estudiante',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 16),
                     if (selectedType == 'estudiante')
@@ -740,7 +743,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                         }
 
                         final updates = <String, dynamic>{
-                          'profile_type': selectedType,
                           if (uploadedUrl != null) 'pfp': uploadedUrl,
                         };
 
@@ -831,7 +833,14 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildThreeRatingsWidget() {
-    final avg = _rating1e.toDouble();
+    final ratings = [
+      _rating1e,
+      _rating2e,
+      _rating3e,
+    ].where((r) => r > 0).toList();
+    final avg = ratings.isNotEmpty
+        ? (ratings.reduce((a, b) => a + b) / ratings.length)
+        : 0.0;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -889,307 +898,80 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ],
                 ],
               ),
-              InkWell(
-                onTap: _showRatingEditDialog,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1DA1F2).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFF1DA1F2)),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.edit_rounded,
-                        color: Color(0xFF1DA1F2),
-                        size: 14,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        'Calificar',
-                        style: TextStyle(
-                          color: Color(0xFF1DA1F2),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0E1114),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white10),
+          const SizedBox(height: 14),
+          _buildSubjectRatingRow('Inglés', _rating1e, _rating1n),
+          _buildSubjectRatingRow('Matemáticas', _rating2e, _rating2n),
+          _buildSubjectRatingRow('Programación', _rating3e, _rating3n),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubjectRatingRow(String subjectName, int score, String note) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0E1114),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: const Color(0xFF1DA1F2).withOpacity(0.2),
+            child: const Icon(
+              Icons.book_outlined,
+              size: 14,
+              color: Color(0xFF1DA1F2),
             ),
-            child: Row(
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: const Color(0xFF1DA1F2).withOpacity(0.2),
-                  child: const Icon(
-                    Icons.comment,
-                    size: 14,
-                    color: Color(0xFF1DA1F2),
+                Text(
+                  subjectName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _rating1n.isNotEmpty ? _rating1n : 'Opinión General',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (_rating1e == 0)
-                        const Text(
-                          'Sin calificar aún',
-                          style: TextStyle(
-                            color: Color(0xFF71767B),
-                            fontSize: 11,
-                          ),
-                        ),
-                    ],
+                const SizedBox(height: 2),
+                Text(
+                  note.isNotEmpty
+                      ? note
+                      : (score > 0 ? 'Sin comentarios' : 'Sin calificar aún'),
+                  style: TextStyle(
+                    color: note.isNotEmpty
+                        ? Colors.grey.shade300
+                        : const Color(0xFF71767B),
+                    fontSize: 11,
                   ),
-                ),
-                Row(
-                  children: List.generate(5, (starIdx) {
-                    return Icon(
-                      starIdx < _rating1e ? Icons.star : Icons.star_border,
-                      color: _rating1e > 0
-                          ? Colors.amber
-                          : Colors.grey.shade700,
-                      size: 18,
-                    );
-                  }),
                 ),
               ],
             ),
+          ),
+          Row(
+            children: List.generate(5, (starIdx) {
+              return Icon(
+                starIdx < score ? Icons.star : Icons.star_border,
+                color: score > 0 ? Colors.amber : Colors.grey.shade700,
+                size: 18,
+              );
+            }),
           ),
         ],
       ),
     );
   }
 
-  void _showRatingEditDialog() {
-    int tempR1e = _rating1e;
-    String tempR1n = _rating1n;
 
-    final n1Controller = TextEditingController(text: tempR1n);
-
-    bool isSaving = false;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            Widget buildStarSelector(int currentVal, Function(int) onSelect) {
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(5, (idx) {
-                  final starVal = idx + 1;
-                  return IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: Icon(
-                      starVal <= currentVal ? Icons.star : Icons.star_border,
-                      color: Colors.amber,
-                      size: 26,
-                    ),
-                    onPressed: () {
-                      setDialogState(() {
-                        onSelect(starVal);
-                      });
-                    },
-                  );
-                }),
-              );
-            }
-
-            return AlertDialog(
-              backgroundColor: const Color(0xFF16181C),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFF2F3336)),
-              ),
-              title: const Row(
-                children: [
-                  Icon(Icons.star_rate_rounded, color: Colors.amber),
-                  SizedBox(width: 8),
-                  Text(
-                    'Calificar Perfil',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Asigna puntuación (1 a 5 estrellas) y observación para la evaluación:',
-                      style: TextStyle(color: Color(0xFF71767B), fontSize: 13),
-                    ),
-                    const SizedBox(height: 14),
-
-                    const Text(
-                      'Evaluación General:',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    buildStarSelector(tempR1e, (val) => tempR1e = val),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: n1Controller,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                      maxLines: 3,
-                      minLines: 1,
-                      decoration: InputDecoration(
-                        hintText: 'Introduce tu opinión...',
-                        hintStyle: const TextStyle(color: Color(0xFF71767B)),
-                        filled: true,
-                        fillColor: const Color(0xFF0E1114),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF2F3336),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isSaving ? null : () => Navigator.pop(context),
-                  child: const Text(
-                    'Cancelar',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1DA1F2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  onPressed: isSaving
-                      ? null
-                      : () async {
-                          setDialogState(() => isSaving = true);
-                          try {
-                            final profileId = _profileData?['id'];
-                            final userId = _supabase.auth.currentUser?.id;
-
-                            final updates = {
-                              'rating1e': tempR1e,
-                              'rating1n': n1Controller.text.trim(),
-                              'rating2e': 0,
-                              'rating2n': '',
-                              'rating3e': 0,
-                              'rating3n': '',
-                            };
-
-                            if (profileId != null) {
-                              await _supabase
-                                  .schema('perfiles')
-                                  .from('perfil_unificado')
-                                  .update(updates)
-                                  .eq('id', profileId);
-                            } else if (userId != null) {
-                              await _supabase
-                                  .schema('perfiles')
-                                  .from('perfil_unificado')
-                                  .update(updates)
-                                  .eq('user_id', userId);
-                            }
-
-                            if (mounted) {
-                              setState(() {
-                                _rating1e = tempR1e;
-                                _rating1n = n1Controller.text.trim();
-                              });
-                            }
-
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Calificación guardada exitosamente',
-                                  ),
-                                  backgroundColor: Color(0xFF1DA1F2),
-                                ),
-                              );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Error al guardar calificación: $e',
-                                  ),
-                                  backgroundColor: Colors.redAccent,
-                                ),
-                              );
-                            }
-                          } finally {
-                            if (context.mounted) {
-                              setDialogState(() => isSaving = false);
-                            }
-                          }
-                        },
-                  child: isSaving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          'Guardar',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
 
   Widget _buildCountItem(String count, String label) {
     return Row(

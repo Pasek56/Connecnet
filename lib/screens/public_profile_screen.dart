@@ -20,6 +20,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
   bool _isLoading = true;
   Map<String, dynamic>? _profileData;
   List<Map<String, dynamic>> _posts = [];
+  String _currentUserRole = '';
 
   @override
   void initState() {
@@ -36,6 +37,20 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
 
   Future<void> _fetchProfile() async {
     try {
+      final currentUser = _supabase.auth.currentUser;
+      if (currentUser != null) {
+        final currentProfile = await _supabase
+            .schema('perfiles')
+            .from('perfil_unificado')
+            .select('profile_type')
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+        if (currentProfile != null && mounted) {
+          _currentUserRole =
+              (currentProfile['profile_type'] ?? '').toString();
+        }
+      }
+
       final data = await _supabase
           .schema('perfiles')
           .from('perfil_unificado')
@@ -451,7 +466,25 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
         : 0;
     final r1n = (_profileData!['rating1n'] ?? '').toString();
 
-    final avg = r1e.toDouble();
+    final r2e = (_profileData!['rating2e'] is num)
+        ? (_profileData!['rating2e'] as num).toInt()
+        : 0;
+    final r2n = (_profileData!['rating2n'] ?? '').toString();
+
+    final r3e = (_profileData!['rating3e'] is num)
+        ? (_profileData!['rating3e'] as num).toInt()
+        : 0;
+    final r3n = (_profileData!['rating3n'] ?? '').toString();
+
+    final ratings = [r1e, r2e, r3e].where((r) => r > 0).toList();
+    final avg = ratings.isNotEmpty
+        ? (ratings.reduce((a, b) => a + b) / ratings.length)
+        : 0.0;
+
+    final isDocente =
+        (_currentUserRole == 'docente' || _currentUserRole == 'profesor');
+    final isTargetStudent = (_profileData?['profile_type'] == 'estudiante');
+    final canRate = isDocente && isTargetStudent;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -509,97 +542,108 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
                   ],
                 ],
               ),
-              InkWell(
-                onTap: _showRatingEditDialog,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1DA1F2).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFF1DA1F2)),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.rate_review_outlined,
-                        color: Color(0xFF1DA1F2),
-                        size: 14,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        'Calificar',
-                        style: TextStyle(
+              if (canRate)
+                InkWell(
+                  onTap: _showRatingEditDialog,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1DA1F2).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFF1DA1F2)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.rate_review_outlined,
                           color: Color(0xFF1DA1F2),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                          size: 14,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0E1114),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white10),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: const Color(0xFF1DA1F2).withOpacity(0.2),
-                  child: const Icon(
-                    Icons.comment,
-                    size: 14,
-                    color: Color(0xFF1DA1F2),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        r1n.isNotEmpty ? r1n : 'Opinión General',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (r1e == 0)
-                        const Text(
-                          'Sin calificar aún',
+                        SizedBox(width: 4),
+                        Text(
+                          'Calificar',
                           style: TextStyle(
-                            color: Color(0xFF71767B),
-                            fontSize: 11,
+                            color: Color(0xFF1DA1F2),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-                Row(
-                  children: List.generate(5, (starIdx) {
-                    return Icon(
-                      starIdx < r1e ? Icons.star : Icons.star_border,
-                      color: r1e > 0 ? Colors.amber : Colors.grey.shade700,
-                      size: 18,
-                    );
-                  }),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _buildSubjectRatingRow('Inglés', r1e, r1n),
+          _buildSubjectRatingRow('Matemáticas', r2e, r2n),
+          _buildSubjectRatingRow('Programación', r3e, r3n),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubjectRatingRow(String subjectName, int score, String note) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0E1114),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: const Color(0xFF1DA1F2).withOpacity(0.2),
+            child: const Icon(
+              Icons.book_outlined,
+              size: 14,
+              color: Color(0xFF1DA1F2),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  subjectName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  note.isNotEmpty
+                      ? note
+                      : (score > 0 ? 'Sin comentarios' : 'Sin calificar aún'),
+                  style: TextStyle(
+                    color: note.isNotEmpty
+                        ? Colors.grey.shade300
+                        : const Color(0xFF71767B),
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
+          ),
+          Row(
+            children: List.generate(5, (starIdx) {
+              return Icon(
+                starIdx < score ? Icons.star : Icons.star_border,
+                color: score > 0 ? Colors.amber : Colors.grey.shade700,
+                size: 18,
+              );
+            }),
           ),
         ],
       ),
@@ -614,7 +658,19 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
         : 0;
     String tempR1n = (_profileData!['rating1n'] ?? '').toString();
 
+    int tempR2e = (_profileData!['rating2e'] is num)
+        ? (_profileData!['rating2e'] as num).toInt()
+        : 0;
+    String tempR2n = (_profileData!['rating2n'] ?? '').toString();
+
+    int tempR3e = (_profileData!['rating3e'] is num)
+        ? (_profileData!['rating3e'] as num).toInt()
+        : 0;
+    String tempR3n = (_profileData!['rating3n'] ?? '').toString();
+
     final n1Controller = TextEditingController(text: tempR1n);
+    final n2Controller = TextEditingController(text: tempR2n);
+    final n3Controller = TextEditingController(text: tempR3n);
 
     bool isSaving = false;
 
@@ -646,23 +702,67 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
               );
             }
 
+            Widget buildSubjectSection(
+              String title,
+              int score,
+              Function(int) onScoreChanged,
+              TextEditingController controller,
+            ) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  buildStarSelector(score, onScoreChanged),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: controller,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    maxLines: 2,
+                    minLines: 1,
+                    decoration: InputDecoration(
+                      hintText: 'Observación sobre $title...',
+                      hintStyle: const TextStyle(color: Color(0xFF71767B)),
+                      filled: true,
+                      fillColor: const Color(0xFF0E1114),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF2F3336),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              );
+            }
+
             return AlertDialog(
               backgroundColor: const Color(0xFF16181C),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: const BorderSide(color: Color(0xFF2F3336)),
               ),
-              title: Row(
+              title: const Row(
                 children: [
-                  const Icon(Icons.star_rate_rounded, color: Colors.amber),
-                  const SizedBox(width: 8),
+                  Icon(Icons.star_rate_rounded, color: Colors.amber),
+                  SizedBox(width: 8),
                   Text(
-                    _profileData?['profile_type'] == 'docente'
-                        ? 'Calificar Docente'
-                        : _profileData?['profile_type'] == 'egresado'
-                        ? 'Calificar Egresado'
-                        : 'Calificar Estudiante',
-                    style: const TextStyle(color: Colors.white, fontSize: 18),
+                    'Calificar Estudiante',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ],
               ),
@@ -672,44 +772,27 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Asigna puntuación (1 a 5 estrellas) y observación para la evaluación:',
+                      'Asigna puntuación (1 a 5 estrellas) y observaciones por asignatura:',
                       style: TextStyle(color: Color(0xFF71767B), fontSize: 13),
                     ),
                     const SizedBox(height: 14),
-
-                    const Text(
-                      'Evaluación General:',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
+                    buildSubjectSection(
+                      'Inglés',
+                      tempR1e,
+                      (val) => tempR1e = val,
+                      n1Controller,
                     ),
-                    const SizedBox(height: 4),
-                    buildStarSelector(tempR1e, (val) => tempR1e = val),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: n1Controller,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                      maxLines: 3,
-                      minLines: 1,
-                      decoration: InputDecoration(
-                        hintText: 'Introduce tu opinión...',
-                        hintStyle: const TextStyle(color: Color(0xFF71767B)),
-                        filled: true,
-                        fillColor: const Color(0xFF0E1114),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF2F3336),
-                          ),
-                        ),
-                      ),
+                    buildSubjectSection(
+                      'Matemáticas',
+                      tempR2e,
+                      (val) => tempR2e = val,
+                      n2Controller,
+                    ),
+                    buildSubjectSection(
+                      'Programación',
+                      tempR3e,
+                      (val) => tempR3e = val,
+                      n3Controller,
                     ),
                   ],
                 ),
@@ -737,10 +820,10 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
                             final updates = {
                               'rating1e': tempR1e,
                               'rating1n': n1Controller.text.trim(),
-                              'rating2e': 0,
-                              'rating2n': '',
-                              'rating3e': 0,
-                              'rating3n': '',
+                              'rating2e': tempR2e,
+                              'rating2n': n2Controller.text.trim(),
+                              'rating3e': tempR3e,
+                              'rating3n': n3Controller.text.trim(),
                             };
 
                             await _supabase
@@ -752,12 +835,14 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
                             if (mounted) {
                               setState(() {
                                 _profileData!['rating1e'] = tempR1e;
-                                _profileData!['rating1n'] = n1Controller.text
-                                    .trim();
-                                _profileData!['rating2e'] = 0;
-                                _profileData!['rating2n'] = '';
-                                _profileData!['rating3e'] = 0;
-                                _profileData!['rating3n'] = '';
+                                _profileData!['rating1n'] =
+                                    n1Controller.text.trim();
+                                _profileData!['rating2e'] = tempR2e;
+                                _profileData!['rating2n'] =
+                                    n2Controller.text.trim();
+                                _profileData!['rating3e'] = tempR3e;
+                                _profileData!['rating3n'] =
+                                    n3Controller.text.trim();
                               });
                             }
 
@@ -766,7 +851,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
-                                    'Calificación guardada exitosamente',
+                                    'Calificaciones guardadas exitosamente',
                                   ),
                                   backgroundColor: Color(0xFF1DA1F2),
                                 ),
@@ -777,7 +862,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    'Error al guardar calificación: $e',
+                                    'Error al guardar calificaciones: $e',
                                   ),
                                   backgroundColor: Colors.redAccent,
                                 ),

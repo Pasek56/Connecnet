@@ -127,30 +127,56 @@ class _LoginScreenState extends State<LoginScreen>
             }
 
             try {
+              // Build profile data for perfil_unificado based on selected role
               final Map<String, dynamic> insertData = {
-                'id': user.id,
-                'email': fullEmail,
+                'user_id': user.id,
                 'profile_type': _selectedProfileType,
+                'pfp':
+                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+                'allow_messages': false,
+                'rating1e': 0,
+                'rating1n': '',
+                'rating2e': 0,
+                'rating2n': '',
+                'rating3e': 0,
+                'rating3n': '',
               };
 
               if (_selectedProfileType == 'estudiante') {
                 insertData['nombres'] = firstName;
                 insertData['apellidos'] = lastName;
+                insertData['correo'] = fullEmail;
+                insertData['semestre'] = 1;
+                insertData['experiencia'] = '';
+                insertData['preparador'] = 'N';
               } else if (_selectedProfileType == 'docente') {
                 insertData['nombres_prof'] = firstName;
                 insertData['apellidos_prof'] = lastName;
+                insertData['correo_prof'] = fullEmail;
+                insertData['mater1'] = '';
+                insertData['mater2'] = '';
+                insertData['mater3'] = '';
               } else if (_selectedProfileType == 'egresado') {
                 insertData['nombres_pro'] = firstName;
                 insertData['apellidos_pro'] = lastName;
+                insertData['correo_pro'] = fullEmail;
+                insertData['titulo'] = '';
+                insertData['empleo1'] = '';
+                insertData['empleo2'] = '';
+                insertData['empleo3'] = '';
               }
 
-              await supabase.from('profiles').upsert(insertData);
+              await supabase
+                  .schema('perfiles')
+                  .from('perfil_unificado')
+                  .insert(insertData);
             } catch (profileError) {
               debugPrint(
-                'Error creando perfil en la tabla de perfiles: $profileError',
+                'Error creando perfil en perfil_unificado: $profileError',
               );
             }
           }
+
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
