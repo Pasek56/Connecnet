@@ -22,10 +22,6 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   int _rating1e = 0;
   String _rating1n = '';
-  int _rating2e = 0;
-  String _rating2n = '';
-  int _rating3e = 0;
-  String _rating3n = '';
   String _profileName = '';
   String _profileImageUrl =
       'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
@@ -226,19 +222,11 @@ class _ProfileScreenState extends State<ProfileScreen>
         data['pfp'] ??
         'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
 
-    // Load 3 ratings
+    // Load 1 rating
     _rating1e = (data['rating1e'] is num)
         ? (data['rating1e'] as num).toInt()
         : 0;
     _rating1n = (data['rating1n'] ?? '').toString();
-    _rating2e = (data['rating2e'] is num)
-        ? (data['rating2e'] as num).toInt()
-        : 0;
-    _rating2n = (data['rating2n'] ?? '').toString();
-    _rating3e = (data['rating3e'] is num)
-        ? (data['rating3e'] as num).toInt()
-        : 0;
-    _rating3n = (data['rating3n'] ?? '').toString();
   }
 
   String _getDisplayName() {
@@ -482,7 +470,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showEditProfileDialog() {
-    final currentType = _profileData?['profile_type']?.toString() ?? 'estudiante';
+    final currentType =
+        _profileData?['profile_type']?.toString() ?? 'estudiante';
 
     String initialNombres = '';
     if (currentType == 'docente') {
@@ -566,9 +555,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       initialValue:
-                          ['estudiante', 'docente', 'egresado'].contains(selectedType)
-                              ? selectedType
-                              : 'estudiante',
+                          [
+                            'estudiante',
+                            'docente',
+                            'egresado',
+                          ].contains(selectedType)
+                          ? selectedType
+                          : 'estudiante',
                       dropdownColor: const Color(0xFF161C22),
                       style: const TextStyle(color: Colors.white),
                       decoration: const InputDecoration(
@@ -752,18 +745,23 @@ class _ProfileScreenState extends State<ProfileScreen>
                         };
 
                         if (selectedType == 'docente') {
-                          updates['nombres_prof'] = nombresController.text.trim();
-                          updates['apellidos_prof'] = apellidosController.text.trim();
+                          updates['nombres_prof'] = nombresController.text
+                              .trim();
+                          updates['apellidos_prof'] = apellidosController.text
+                              .trim();
                           if (mater1Controller.text.trim().isNotEmpty) {
                             updates['mater1'] = mater1Controller.text.trim();
                           }
                         } else if (selectedType == 'egresado') {
-                          updates['nombres_pro'] = nombresController.text.trim();
-                          updates['apellidos_pro'] = apellidosController.text.trim();
+                          updates['nombres_pro'] = nombresController.text
+                              .trim();
+                          updates['apellidos_pro'] = apellidosController.text
+                              .trim();
                           updates['titulo'] = tituloController.text.trim();
                         } else {
                           updates['nombres'] = nombresController.text.trim();
-                          updates['apellidos'] = apellidosController.text.trim();
+                          updates['apellidos'] = apellidosController.text
+                              .trim();
                           updates['semestre'] =
                               int.tryParse(semestreController.text) ?? 1;
                         }
@@ -833,22 +831,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildThreeRatingsWidget() {
-    final ratings = [
-      {'e': _rating1e, 'n': _rating1n, 'default': 'Evaluación 1'},
-      {'e': _rating2e, 'n': _rating2n, 'default': 'Evaluación 2'},
-      {'e': _rating3e, 'n': _rating3n, 'default': 'Evaluación 3'},
-    ];
-
-    int validCount = 0;
-    int sum = 0;
-    for (var r in ratings) {
-      final score = r['e'] as int;
-      if (score > 0) {
-        sum += score;
-        validCount++;
-      }
-    }
-    final double avg = validCount > 0 ? sum / validCount : 0.0;
+    final avg = _rating1e.toDouble();
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -872,15 +855,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                     _profileData?['profile_type'] == 'docente'
                         ? 'Evaluaciones del Docente'
                         : _profileData?['profile_type'] == 'egresado'
-                            ? 'Evaluaciones del Egresado'
-                            : 'Calificaciones del Estudiante',
+                        ? 'Evaluaciones del Egresado'
+                        : 'Calificaciones del Estudiante',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (validCount > 0) ...[
+                  if (avg > 0) ...[
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -943,75 +926,62 @@ class _ProfileScreenState extends State<ProfileScreen>
             ],
           ),
           const SizedBox(height: 12),
-          Column(
-            children: List.generate(3, (index) {
-              final r = ratings[index];
-              final score = r['e'] as int;
-              final note = r['n'] as String;
-              final defaultTitle = r['default'] as String;
-              final title = note.isNotEmpty ? note : defaultTitle;
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0E1114),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white10),
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0E1114),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: const Color(0xFF1DA1F2).withOpacity(0.2),
+                  child: const Icon(
+                    Icons.comment,
+                    size: 14,
+                    color: Color(0xFF1DA1F2),
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 14,
-                      backgroundColor: const Color(0xFF1DA1F2).withOpacity(0.2),
-                      child: Text(
-                        '${index + 1}',
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _rating1n.isNotEmpty ? _rating1n : 'Opinión General',
                         style: const TextStyle(
-                          color: Color(0xFF1DA1F2),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      if (_rating1e == 0)
+                        const Text(
+                          'Sin calificar aún',
+                          style: TextStyle(
+                            color: Color(0xFF71767B),
+                            fontSize: 11,
                           ),
-                          if (score == 0)
-                            const Text(
-                              'Sin calificar aún',
-                              style: TextStyle(
-                                color: Color(0xFF71767B),
-                                fontSize: 11,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    Row(
-                      children: List.generate(5, (starIdx) {
-                        return Icon(
-                          starIdx < score ? Icons.star : Icons.star_border,
-                          color: score > 0
-                              ? Colors.amber
-                              : Colors.grey.shade700,
-                          size: 18,
-                        );
-                      }),
-                    ),
-                  ],
+                        ),
+                    ],
+                  ),
                 ),
-              );
-            }),
+                Row(
+                  children: List.generate(5, (starIdx) {
+                    return Icon(
+                      starIdx < _rating1e ? Icons.star : Icons.star_border,
+                      color: _rating1e > 0
+                          ? Colors.amber
+                          : Colors.grey.shade700,
+                      size: 18,
+                    );
+                  }),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1021,14 +991,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   void _showRatingEditDialog() {
     int tempR1e = _rating1e;
     String tempR1n = _rating1n;
-    int tempR2e = _rating2e;
-    String tempR2n = _rating2n;
-    int tempR3e = _rating3e;
-    String tempR3n = _rating3n;
 
     final n1Controller = TextEditingController(text: tempR1n);
-    final n2Controller = TextEditingController(text: tempR2n);
-    final n3Controller = TextEditingController(text: tempR3n);
 
     bool isSaving = false;
 
@@ -1082,14 +1046,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Asigna puntuación (1 a 5 estrellas) y observación para las 3 evaluaciones:',
+                      'Asigna puntuación (1 a 5 estrellas) y observación para la evaluación:',
                       style: TextStyle(color: Color(0xFF71767B), fontSize: 13),
                     ),
                     const SizedBox(height: 14),
 
-                    // Rating 1
                     const Text(
-                      'Competencia 1:',
+                      'Evaluación General:',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -1102,78 +1065,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                     TextField(
                       controller: n1Controller,
                       style: const TextStyle(color: Colors.white, fontSize: 13),
+                      maxLines: 3,
+                      minLines: 1,
                       decoration: InputDecoration(
-                        hintText: 'Ej. Matemáticas',
-                        hintStyle: const TextStyle(color: Color(0xFF71767B)),
-                        filled: true,
-                        fillColor: const Color(0xFF0E1114),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF2F3336),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Rating 2
-                    const Text(
-                      'Competencia 2:',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    buildStarSelector(tempR2e, (val) => tempR2e = val),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: n2Controller,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: 'Ej. Inglés',
-                        hintStyle: const TextStyle(color: Color(0xFF71767B)),
-                        filled: true,
-                        fillColor: const Color(0xFF0E1114),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF2F3336),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Rating 3
-                    const Text(
-                      'Competencia 3:',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    buildStarSelector(tempR3e, (val) => tempR3e = val),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: n3Controller,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: 'Ej. Programación',
+                        hintText: 'Introduce tu opinión...',
                         hintStyle: const TextStyle(color: Color(0xFF71767B)),
                         filled: true,
                         fillColor: const Color(0xFF0E1114),
@@ -1219,10 +1114,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                             final updates = {
                               'rating1e': tempR1e,
                               'rating1n': n1Controller.text.trim(),
-                              'rating2e': tempR2e,
-                              'rating2n': n2Controller.text.trim(),
-                              'rating3e': tempR3e,
-                              'rating3n': n3Controller.text.trim(),
+                              'rating2e': 0,
+                              'rating2n': '',
+                              'rating3e': 0,
+                              'rating3n': '',
                             };
 
                             if (profileId != null) {
@@ -1243,10 +1138,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                               setState(() {
                                 _rating1e = tempR1e;
                                 _rating1n = n1Controller.text.trim();
-                                _rating2e = tempR2e;
-                                _rating2n = n2Controller.text.trim();
-                                _rating3e = tempR3e;
-                                _rating3n = n3Controller.text.trim();
                               });
                             }
 
@@ -1255,7 +1146,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
-                                    'Calificaciones guardadas exitosamente',
+                                    'Calificación guardada exitosamente',
                                   ),
                                   backgroundColor: Color(0xFF1DA1F2),
                                 ),
@@ -1266,7 +1157,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    'Error al guardar calificaciones: $e',
+                                    'Error al guardar calificación: $e',
                                   ),
                                   backgroundColor: Colors.redAccent,
                                 ),

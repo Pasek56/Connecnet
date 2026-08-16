@@ -674,7 +674,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             minHeight: 16,
                           ),
                           child: const Text(
-                            '4',
+                            '1',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 10,
@@ -944,11 +944,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _openConversationsScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ConversationsScreen(userProfile: _userProfile),
-      ),
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(16),
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            width: MediaQuery.of(context).size.width > 800
+                ? 700
+                : double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.all(Radius.circular(16)),
+              child: ConversationsScreen(userProfile: _userProfile),
+            ),
+          ),
+        );
+      },
     );
   }
 
