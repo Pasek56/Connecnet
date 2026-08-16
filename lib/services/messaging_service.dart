@@ -135,8 +135,8 @@ class MessagingService {
       // Collect all other-user profile IDs
       final otherProfileIds = <int>{};
       for (var conv in allConversations) {
-        final aId = conv['user_a_id'] as int;
-        final bId = conv['user_b_id'] as int;
+        final aId = (conv['user_a_id'] as num).toInt();
+        final bId = (conv['user_b_id'] as num).toInt();
         otherProfileIds.add(aId == profileId ? bId : aId);
       }
 
@@ -150,7 +150,7 @@ class MessagingService {
             .filter('id', 'in', otherProfileIds.toList());
         final profiles =
             List<Map<String, dynamic>>.from(profilesResponse);
-        profileMap = {for (var p in profiles) p['id'] as int: p};
+        profileMap = {for (var p in profiles) (p['id'] as num).toInt(): p};
       }
 
       // Fetch last message and read status for each conversation

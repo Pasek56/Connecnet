@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
+import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -126,6 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           final defaultProfile = {
             'user_id': user.id,
             'profile_type': 'estudiante',
+            'allow_messages': false,
             'nombres': name,
             'apellidos': lastName,
             'correo': user.email ?? '',
@@ -481,18 +482,37 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showEditProfileDialog() {
-    final nombresController = TextEditingController(
-      text: _profileData?['nombres'] ?? '',
-    );
-    final apellidosController = TextEditingController(
-      text: _profileData?['apellidos'] ?? '',
-    );
-    String selectedType = _profileData?['profile_type'] ?? 'estudiante';
+    final currentType = _profileData?['profile_type']?.toString() ?? 'estudiante';
+
+    String initialNombres = '';
+    if (currentType == 'docente') {
+      initialNombres = _profileData?['nombres_prof']?.toString() ?? '';
+    } else if (currentType == 'egresado') {
+      initialNombres = _profileData?['nombres_pro']?.toString() ?? '';
+    } else {
+      initialNombres = _profileData?['nombres']?.toString() ?? '';
+    }
+
+    String initialApellidos = '';
+    if (currentType == 'docente') {
+      initialApellidos = _profileData?['apellidos_prof']?.toString() ?? '';
+    } else if (currentType == 'egresado') {
+      initialApellidos = _profileData?['apellidos_pro']?.toString() ?? '';
+    } else {
+      initialApellidos = _profileData?['apellidos']?.toString() ?? '';
+    }
+
+    final nombresController = TextEditingController(text: initialNombres);
+    final apellidosController = TextEditingController(text: initialApellidos);
+    String selectedType = currentType;
     final semestreController = TextEditingController(
       text: (_profileData?['semestre'] ?? 1).toString(),
     );
     final tituloController = TextEditingController(
       text: _profileData?['titulo'] ?? '',
+    );
+    final mater1Controller = TextEditingController(
+      text: _profileData?['mater1'] ?? '',
     );
 
     String? selectedImagePath = _profileImagePath;
@@ -546,9 +566,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       initialValue:
-                          ['estudiante', 'profesional'].contains(selectedType)
-                          ? selectedType
-                          : 'estudiante',
+                          ['estudiante', 'docente', 'egresado'].contains(selectedType)
+                              ? selectedType
+                              : 'estudiante',
                       dropdownColor: const Color(0xFF161C22),
                       style: const TextStyle(color: Colors.white),
                       decoration: const InputDecoration(
@@ -567,8 +587,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                           child: Text('Estudiante'),
                         ),
                         DropdownMenuItem(
-                          value: 'profesional',
-                          child: Text('Profesional'),
+                          value: 'docente',
+                          child: Text('Docente'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'egresado',
+                          child: Text('Egresado'),
                         ),
                       ],
                       onChanged: (val) {
@@ -596,7 +620,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                           ),
                         ),
                       )
-                    else if (selectedType == 'profesional')
+                    else if (selectedType == 'docente')
+                      TextField(
+                        controller: mater1Controller,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(
+                          labelText: 'Materia Principal',
+                          labelStyle: TextStyle(color: Colors.grey),
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF1DA1F2)),
+                          ),
+                        ),
+                      )
+                    else if (selectedType == 'egresado')
                       TextField(
                         controller: tituloController,
                         style: const TextStyle(color: Colors.white),
@@ -683,10 +722,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                         String? uploadedUrl;
                         if (selectedImageBytes != null &&
                             selectedImageName != null) {
-                          final ext = selectedImageName!
+                          final rawExt = selectedImageName!
                               .split('.')
                               .last
                               .toLowerCase();
+                          final ext = (rawExt == 'jpg' || rawExt == 'jpeg')
+                              ? 'jpeg'
+                              : rawExt;
                           final path =
                               'avatars/${user.id}/${DateTime.now().millisecondsSinceEpoch}.$ext';
 
@@ -704,17 +746,27 @@ class _ProfileScreenState extends State<ProfileScreen>
                               .getPublicUrl(path);
                         }
 
-                        final updates = {
-                          'nombres': nombresController.text,
-                          'apellidos': apellidosController.text,
+                        final updates = <String, dynamic>{
                           'profile_type': selectedType,
-                          if (selectedType == 'estudiante')
-                            'semestre':
-                                int.tryParse(semestreController.text) ?? 1,
-                          if (selectedType == 'profesional')
-                            'titulo': tituloController.text,
                           if (uploadedUrl != null) 'pfp': uploadedUrl,
                         };
+
+                        if (selectedType == 'docente') {
+                          updates['nombres_prof'] = nombresController.text.trim();
+                          updates['apellidos_prof'] = apellidosController.text.trim();
+                          if (mater1Controller.text.trim().isNotEmpty) {
+                            updates['mater1'] = mater1Controller.text.trim();
+                          }
+                        } else if (selectedType == 'egresado') {
+                          updates['nombres_pro'] = nombresController.text.trim();
+                          updates['apellidos_pro'] = apellidosController.text.trim();
+                          updates['titulo'] = tituloController.text.trim();
+                        } else {
+                          updates['nombres'] = nombresController.text.trim();
+                          updates['apellidos'] = apellidosController.text.trim();
+                          updates['semestre'] =
+                              int.tryParse(semestreController.text) ?? 1;
+                        }
 
                         await _supabase
                             .schema('perfiles')
@@ -734,7 +786,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                     }
                     if (selectedImagePath != null &&
                         selectedImageBytes == null) {
-                      // This means they didn't pick a new image, keep the old logic just in case
                       setState(() {
                         _profileImagePath = selectedImagePath;
                       });
@@ -817,9 +868,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                 children: [
                   const Icon(Icons.star_rounded, color: Colors.amber, size: 22),
                   const SizedBox(width: 6),
-                  const Text(
-                    'Evaluaciones del Docente',
-                    style: TextStyle(
+                  Text(
+                    _profileData?['profile_type'] == 'docente'
+                        ? 'Evaluaciones del Docente'
+                        : _profileData?['profile_type'] == 'egresado'
+                            ? 'Evaluaciones del Egresado'
+                            : 'Calificaciones del Estudiante',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
                       fontWeight: FontWeight.bold,

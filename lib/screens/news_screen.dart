@@ -255,7 +255,7 @@ class _NewsScreenState extends State<NewsScreen> {
                     rawNews['comentarios'] is List) {
                   final list = rawNews['comentarios'] as List;
                   if (list.isNotEmpty && list.first['count'] != null) {
-                    commentsCount = list.first['count'] as int;
+                    commentsCount = (list.first['count'] as num).toInt();
                   }
                 }
 

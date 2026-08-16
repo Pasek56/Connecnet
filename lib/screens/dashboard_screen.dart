@@ -20,6 +20,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final TextEditingController _postController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   final _supabase = Supabase.instance.client;
 
   bool _isLoading = true;
@@ -29,6 +30,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _selectedImageName;
   Map<String, dynamic>? _userProfile;
   List<Map<String, dynamic>> _encargos = [];
+  String _searchQuery = '';
 
   // Like state
   Set<int> _likedEncargos = {};
@@ -43,7 +45,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void dispose() {
     _postController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  List<Map<String, dynamic>> get _filteredEncargos {
+    if (_searchQuery.trim().isEmpty) return _encargos;
+    final query = _searchQuery.toLowerCase();
+    return _encargos.where((encargo) {
+      final caption = (encargo['desc_enc'] ?? '').toString().toLowerCase();
+      final sender = encargo['sender'] as Map<String, dynamic>?;
+      final senderName = _getSenderName(sender).toLowerCase();
+      return caption.contains(query) || senderName.contains(query);
+    }).toList();
   }
 
   Future<void> _loadData() async {
@@ -440,12 +454,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final ext = filename.split('.').last.toLowerCase();
       final userId = _supabase.auth.currentUser?.id ?? 'unknown';
-      final path = 'posts/$userId/${DateTime.now().millisecondsSinceEpoch}.$ext';
-      await _supabase.storage.from('avatars').uploadBinary(
-        path,
-        bytes,
-        fileOptions: FileOptions(contentType: 'image/$ext'),
-      );
+      final path =
+          'posts/$userId/${DateTime.now().millisecondsSinceEpoch}.$ext';
+      await _supabase.storage
+          .from('avatars')
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions: FileOptions(contentType: 'image/$ext'),
+          );
       return _supabase.storage.from('avatars').getPublicUrl(path);
     } catch (e) {
       debugPrint('Error al subir imagen: $e');
@@ -500,11 +517,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         horizontal: 16,
                         vertical: 16,
                       ),
-                      itemCount: _encargos.length + 2,
+                      itemCount: _filteredEncargos.length + 3,
                       itemBuilder: (context, index) {
                         if (index == 0) return _buildCourseBannerCard();
                         if (index == 1) return _buildCreatePostWidget();
-                        return _buildPostCard(context, _encargos[index - 2]);
+                        if (index == 2) return _buildSearchBar();
+                        final filtered = _filteredEncargos;
+                        return _buildPostCard(context, filtered[index - 3]);
                       },
                     ),
             ),
@@ -1123,6 +1142,63 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: TextField(
+          controller: _searchController,
+          onChanged: (value) => setState(() => _searchQuery = value),
+          style: const TextStyle(fontSize: 14, color: Colors.black87),
+          decoration: InputDecoration(
+            hintText: 'Buscar por publicación o persona...',
+            hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+            prefixIcon: const Icon(
+              Icons.search_rounded,
+              color: Color(0xFF003E90),
+              size: 22,
+            ),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: Colors.grey.shade500,
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _searchQuery = '');
+                    },
+                  )
+                : null,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 14,
+              horizontal: 16,
+            ),
+          ),
         ),
       ),
     );

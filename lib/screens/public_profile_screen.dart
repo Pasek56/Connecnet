@@ -483,9 +483,13 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
                 children: [
                   const Icon(Icons.star_rounded, color: Colors.amber, size: 22),
                   const SizedBox(width: 6),
-                  const Text(
-                    'Evaluaciones del Docente',
-                    style: TextStyle(
+                  Text(
+                    _profileData?['profile_type'] == 'docente'
+                        ? 'Evaluaciones del Docente'
+                        : _profileData?['profile_type'] == 'egresado'
+                            ? 'Evaluaciones del Egresado'
+                            : 'Calificaciones del Estudiante',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
@@ -665,13 +669,17 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
                 borderRadius: BorderRadius.circular(16),
                 side: const BorderSide(color: Color(0xFF2F3336)),
               ),
-              title: const Row(
+              title: Row(
                 children: [
-                  Icon(Icons.star_rate_rounded, color: Colors.amber),
-                  SizedBox(width: 8),
+                  const Icon(Icons.star_rate_rounded, color: Colors.amber),
+                  const SizedBox(width: 8),
                   Text(
-                    'Calificar Estudiante',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
+                    _profileData?['profile_type'] == 'docente'
+                        ? 'Calificar Docente'
+                        : _profileData?['profile_type'] == 'egresado'
+                            ? 'Calificar Egresado'
+                            : 'Calificar Estudiante',
+                    style: const TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ],
               ),

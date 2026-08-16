@@ -323,11 +323,10 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                                           constraints: const BoxConstraints(),
                                           onPressed: sender != null
                                               ? () {
-                                                  final senderId =
-                                                      sender['id'] as int?;
-                                                  final currentId =
-                                                      _userProfile?['id']
-                                                          as int?;
+                                                   final senderId =
+                                                       (sender['id'] as num?)?.toInt();
+                                                   final currentId =
+                                                       (_userProfile?['id'] as num?)?.toInt();
                                                   if (senderId != null) {
                                                     if (senderId == currentId) {
                                                       Navigator.push(
