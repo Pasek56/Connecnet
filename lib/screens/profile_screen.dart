@@ -116,13 +116,13 @@ class _ProfileScreenState extends State<ProfileScreen>
           await _fetchUserPosts();
         } else {
           // Fallback: create a default profile using auth metadata if available
-          final fullName =
-              (user.userMetadata?['full_name'] as String? ?? '').trim();
-          final nameParts =
-              fullName.isNotEmpty ? fullName.split(' ') : [];
+          final fullName = (user.userMetadata?['full_name'] as String? ?? '')
+              .trim();
+          final nameParts = fullName.isNotEmpty ? fullName.split(' ') : [];
           final name = nameParts.isNotEmpty ? nameParts.first : 'Usuario';
-          final lastName =
-              nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+          final lastName = nameParts.length > 1
+              ? nameParts.sublist(1).join(' ')
+              : '';
 
           final defaultProfile = {
             'user_id': user.id,
@@ -161,7 +161,6 @@ class _ProfileScreenState extends State<ProfileScreen>
           await _fetchUserPosts();
         }
       }
-
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -308,7 +307,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     // Show a loading indicator while profile is being fetched
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Color.fromARGB(255, 255, 255, 255),
         body: Center(
           child: CircularProgressIndicator(color: Color(0xFF1DA1F2)),
         ),
@@ -322,18 +321,19 @@ class _ProfileScreenState extends State<ProfileScreen>
     final profileTypeLabel = _getProfileTypeLabel();
 
     return Scaffold(
-      backgroundColor:
-          Colors.black, // True black background for modern Twitter/X dark mode
+      backgroundColor: Colors.white,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
             SliverAppBar(
               floating: false,
               pinned: true,
-              backgroundColor: Colors.black,
+              backgroundColor: Colors.white,
               elevation: 0,
+              shadowColor: Colors.grey.shade200,
+              surfaceTintColor: Colors.white,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon: const Icon(Icons.arrow_back, color: Colors.black87),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -351,7 +351,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                         Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.black, width: 4),
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 4,
+                            ),
                           ),
                           child: CircleAvatar(
                             radius: 40,
@@ -361,7 +364,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         OutlinedButton(
                           onPressed: _showEditProfileDialog,
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFF536471)),
+                            side: const BorderSide(color: Color(0xFF003E90)),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -373,7 +376,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           child: const Text(
                             'Editar perfil',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Color(0xFF003E90),
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),
@@ -389,7 +392,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                        color: Colors.black87,
                         letterSpacing: -0.5,
                       ),
                     ),
@@ -408,7 +411,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       bio,
                       style: const TextStyle(
                         fontSize: 15,
-                        color: Colors.white,
+                        color: Colors.black87,
                         height: 1.3,
                       ),
                     ),
@@ -451,12 +454,18 @@ class _ProfileScreenState extends State<ProfileScreen>
               delegate: _SliverTabBarDelegate(
                 TabBar(
                   controller: _tabController,
-                  indicatorColor: const Color(0xFF1DA1F2),
+                  isScrollable: true,
+                  indicatorColor: const Color(0xFF003E90),
+                  indicatorSize: TabBarIndicatorSize.tab,
                   indicatorWeight: 3,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: const Color(0xFF71767B),
+                  labelColor: const Color(0xFF003E90),
+                  unselectedLabelColor: Colors.grey.shade500,
                   labelStyle: const TextStyle(
                     fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w500,
                     fontSize: 15,
                   ),
                   tabs: const [
@@ -531,7 +540,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               backgroundColor: const Color(0xFF161C22),
               title: const Text(
                 'Editar Perfil',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -687,7 +696,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                               });
                             }
                           },
-                          icon: const Icon(Icons.image, color: Colors.white),
+                          icon: const Icon(
+                            Icons.image,
+                            color: Color.fromARGB(255, 0, 0, 0),
+                          ),
                           label: const Text(
                             'Subir Foto',
                             style: TextStyle(color: Colors.white),
@@ -846,9 +858,16 @@ class _ProfileScreenState extends State<ProfileScreen>
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF16181C),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2F3336)),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade100,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -867,7 +886,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ? 'Evaluaciones del Egresado'
                         : 'Calificaciones del Estudiante',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: Colors.black87,
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                     ),
@@ -914,9 +933,9 @@ class _ProfileScreenState extends State<ProfileScreen>
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFF0E1114),
+        color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
         children: [
@@ -937,7 +956,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 Text(
                   subjectName,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Colors.black87,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -949,8 +968,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                       : (score > 0 ? 'Sin comentarios' : 'Sin calificar aún'),
                   style: TextStyle(
                     color: note.isNotEmpty
-                        ? Colors.grey.shade300
-                        : const Color(0xFF71767B),
+                        ? Colors.grey.shade600
+                        : Colors.grey.shade400,
                     fontSize: 11,
                   ),
                 ),
@@ -961,7 +980,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             children: List.generate(5, (starIdx) {
               return Icon(
                 starIdx < score ? Icons.star : Icons.star_border,
-                color: score > 0 ? Colors.amber : Colors.grey.shade700,
+                color: score > 0 ? Colors.amber : Colors.grey.shade300,
                 size: 18,
               );
             }),
@@ -971,8 +990,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-
-
   Widget _buildCountItem(String count, String label) {
     return Row(
       children: [
@@ -981,13 +998,13 @@ class _ProfileScreenState extends State<ProfileScreen>
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 14,
-            color: Colors.white,
+            color: Colors.black87,
           ),
         ),
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(color: Color(0xFF71767B), fontSize: 14),
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
         ),
       ],
     );
@@ -1010,7 +1027,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       padding: EdgeInsets.zero,
       itemCount: filteredTweets.length,
       separatorBuilder: (context, index) =>
-          const Divider(color: Color(0xFF2F3336), height: 1),
+          Divider(color: Colors.grey.shade200, height: 1),
       itemBuilder: (context, index) {
         final tweet = filteredTweets[index];
         final globalIndex = _tweets.indexOf(tweet);
@@ -1054,7 +1071,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             tweet['displayName'],
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Colors.black87,
                               fontSize: 15,
                             ),
                           ),
@@ -1082,7 +1099,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       Text(
                         tweet['content'],
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: Colors.black87,
                           fontSize: 15,
                           height: 1.3,
                         ),
@@ -1092,17 +1109,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                       if (tweet['hasImage']) ...[
                         const SizedBox(height: 12),
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(12),
                           child: Container(
                             decoration: BoxDecoration(
-                              border: Border.all(
-                                color: const Color(0xFF2F3336),
-                              ),
+                              border: Border.all(color: Colors.grey.shade200),
                             ),
                             child: Image.network(
                               tweet['imageUrl'],
-                              fit: BoxFit.cover,
-                              height: 200,
+                              fit: BoxFit.fitWidth,
                               width: double.infinity,
                             ),
                           ),
@@ -1118,7 +1132,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           _buildActionButton(
                             Icons.chat_bubble_outline_rounded,
                             tweet['comments'].toString(),
-                            const Color(0xFF71767B),
+                            Colors.grey.shade600,
                             onTap: () {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -1131,8 +1145,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                             Icons.repeat_rounded,
                             tweet['retweets'].toString(),
                             tweet['isRetweeted']
-                                ? const Color(0xFF00BA7C)
-                                : const Color(0xFF71767B),
+                                ? Colors.teal
+                                : Colors.grey.shade600,
                             onTap: () => _toggleRetweet(globalIndex),
                           ),
                           _buildActionButton(
@@ -1141,14 +1155,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 : Icons.favorite_border,
                             tweet['likes'].toString(),
                             tweet['isLiked']
-                                ? const Color(0xFFF91880)
-                                : const Color(0xFF71767B),
+                                ? Colors.redAccent
+                                : Colors.grey.shade600,
                             onTap: () => _toggleLike(globalIndex),
                           ),
                           _buildActionButton(
                             Icons.share_outlined,
                             '',
-                            const Color(0xFF71767B),
+                            Colors.grey.shade600,
                             onTap: () {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -1180,7 +1194,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       builder: (context) {
         return Container(
           decoration: const BoxDecoration(
-            color: Color(0xFF161C22),
+            color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: EdgeInsets.only(
@@ -1196,7 +1210,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade600,
+                  color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1204,11 +1218,11 @@ class _ProfileScreenState extends State<ProfileScreen>
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: Colors.blue.withValues(alpha: 0.2),
+                    backgroundColor: const Color(0xFF003E90).withValues(alpha: 0.1),
                     child: const Text(
                       'M',
                       style: TextStyle(
-                        color: Colors.blue,
+                        color: Color(0xFF003E90),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1220,21 +1234,21 @@ class _ProfileScreenState extends State<ProfileScreen>
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Colors.black87,
                       ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              const TextField(
+              TextField(
                 autofocus: true,
                 maxLines: 4,
                 minLines: 1,
-                style: TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.black87),
                 decoration: InputDecoration(
                   hintText: 'Escribe tu respuesta...',
-                  hintStyle: TextStyle(color: Colors.grey),
+                  hintStyle: TextStyle(color: Colors.grey.shade400),
                   border: InputBorder.none,
                 ),
               ),
@@ -1297,12 +1311,12 @@ class _ProfileScreenState extends State<ProfileScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.blur_on, size: 64, color: Color(0xFF2F3336)),
+            Icon(Icons.blur_on, size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 15, color: Color(0xFF71767B)),
+              style: TextStyle(fontSize: 15, color: Colors.grey.shade500),
             ),
           ],
         ),
@@ -1328,7 +1342,15 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return Container(color: Colors.black, child: tabBar);
+    return Container(
+      color: Colors.white,
+      child: Column(
+        children: [
+          Expanded(child: tabBar),
+          Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
+        ],
+      ),
+    );
   }
 
   @override

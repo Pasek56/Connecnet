@@ -8,6 +8,8 @@ import 'profile_screen.dart';
 import 'news_screen.dart';
 import 'conversations_screen.dart';
 import 'public_profile_screen.dart';
+import 'notifications_screen.dart';
+
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback? onLogout;
@@ -658,7 +660,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Icons.notifications_none,
                           color: Colors.black87,
                         ),
-                        onPressed: () {},
+                        onPressed: _openNotificationsScreen,
                       ),
                       Positioned(
                         top: 8,
@@ -962,6 +964,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: ClipRRect(
               borderRadius: const BorderRadius.all(Radius.circular(16)),
               child: ConversationsScreen(userProfile: _userProfile),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _openNotificationsScreen() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(16),
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            width: MediaQuery.of(context).size.width > 800
+                ? 700
+                : double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.all(Radius.circular(16)),
+              child: const NotificationsScreen(),
             ),
           ),
         );
@@ -1513,9 +1541,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
                       img,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.fitWidth,
                       width: double.infinity,
-                      height: 180,
                       errorBuilder: (context, error, stackTrace) =>
                           const SizedBox.shrink(),
                     ),
