@@ -49204,7 +49204,7 @@ r===$&&A.a()
 r=A.cB(B.lp,r,p)
 return A.k6(o,B.fB,s,p,!1,A.Fi(A.ab2(B.F,B.MW,"btn_new_conversation",new A.aw_(q,a)),r))},
 afT(){var s=null
-return A.dc(new A.b8(B.qw,A.bL(A.b([A.b6(s,B.Nq,B.n,s,s,new A.b2(B.F.ft(0.1),s,s,s,s,s,B.cf),s,80,s,s,s,s,80),B.f8,B.a4v,B.c9,A.ai("Inicia una conversaci\xf3n con alguien de la comunidad ConnectNet.",s,s,s,s,A.bq(s,s,B.al,s,s,s,s,s,s,s,s,15,s,s,s,s,1.4,!0,s,s,s,s,s,s,s,s),B.ca,s),B.f8,A.o4(B.a4e,new A.avU(this),A.kO(s,s,B.F,s,s,s,s,s,s,s,s,s,B.Lx,s,new A.bQ(A.b0(25),B.m),s,s,s,s,s))],t.p),B.t,B.bE,B.o),s),s,s)},
+return A.dc(new A.b8(B.qw,A.bL(A.b([A.b6(s,B.Nq,B.n,s,s,new A.b2(B.F.ft(0.1),s,s,s,s,s,B.cf),s,80,s,s,s,s,80),B.f8,B.a4v,B.c9,A.ai("Inicia una conversaci\xf3n con alguien de la comunidad ConnectNet.",s,s,s,s,A.bq(s,s,B.al,s,s,s,s,s,s,s,s,15,s,s,s,s,1.4,!0,s,s,s,s,s,s,s,s),B.ca,s),B.f8,A.o4(B.a4d,new A.avU(this),A.kO(s,s,B.F,s,s,s,s,s,s,s,s,s,B.Lx,s,new A.bQ(A.b0(25),B.m),s,s,s,s,s))],t.p),B.t,B.bE,B.o),s),s,s)},
 afO(a,b){var s,r,q,p,o,n,m,l,k,j,i=null,h="created_at",g=t.nA,f=g.a(a.h(0,"other_profile")),e=g.a(a.h(0,"last_message")),d=A.dw(a.h(0,"unread_count"))
 if(d==null)d=0
 g=this.d
@@ -49710,8 +49710,8 @@ r=A.b([],k)
 if(!s)r.push(new A.d7(new A.awJ(),m))
 r.push(A.adz("Images/Logo_Unet.png",m,new A.awK(),m,38,m))
 r.push(B.c8)
+r.push(B.a4h)
 r.push(B.a4A)
-r.push(B.a4c)
 r.push(B.nJ)
 if(s)B.c.L(r,A.b([n.agf("P\xe1gina Principal",!0),n.Be(l,!1,n.gCC()),n.Be("Mensajes",!1,n.gCA()),n.Be("Mi Perfil",!1,new A.awL(n)),B.DI],k))
 q=A.b([A.dp(m,m,B.N5,m,m,n.garm(),m,m,m)],k)
@@ -50544,7 +50544,7 @@ n=k.y
 o.push(A.arK(k.f,k.TR("Contrase\xf1a",B.Md,A.dp(j,j,A.e5(n?B.rb:B.rc,B.bL,j,j),j,j,new A.aAR(k),j,j,j)),j,n,B.aP,new A.aAS()))
 o.push(B.aj)
 if(!k.x){p=k.z
-B.c.L(o,A.b([A.arK(k.r,k.TR("Confirmar contrase\xf1a",B.Mr,A.dp(j,j,A.e5(p?B.rb:B.rc,B.bL,j,j),j,j,new A.aAT(k),j,j,j)),j,p,B.aP,new A.aAU(k)),B.aj],m))}if(k.x)o.push(new A.dH(B.ei,j,j,A.tI(B.a4d,new A.aAV(a),j),j))
+B.c.L(o,A.b([A.arK(k.r,k.TR("Confirmar contrase\xf1a",B.Mr,A.dp(j,j,A.e5(p?B.rb:B.rc,B.bL,j,j),j,j,new A.aAT(k),j,j,j)),j,p,B.aP,new A.aAU(k)),B.aj],m))}if(k.x)o.push(new A.dH(B.ei,j,j,A.tI(B.a4c,new A.aAV(a),j),j))
 o.push(B.aj)
 p=k.Q?j:k.gauY()
 n=A.kO(j,j,B.F,B.F.ft(0.5),j,j,0,j,j,B.i,j,j,B.lA,j,new A.bQ(A.b0(12),B.m),j,j,j,j,j)
@@ -50945,7 +50945,7 @@ r=A.cT(A.FO(A.bL(r,B.T,B.p,B.o),l,B.D,l,l,B.ah),1)
 n=A.cT(A.fY(l,B.aK,!1,l,!0,B.r,l,A.hq(),m.d,l,l,l,l,l,2,A.kX(l,B.cw,l,l,l,l,l,l,!0,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,A.bq(l,l,B.aO,l,l,l,l,l,l,l,l,l,l,l,l,l,l,!0,l,l,l,l,l,l,l,l),"Comentar esta noticia...",l,l,l,l,l,l,l,l,l,!0,!0,!1,l,l,l,l,l,l,l,l,l,l,l,l,l,l),B.D,!0,l,!0,l,!1,l,B.aR,l,l,l,l,l,l,l,l,1,l,l,!1,"\u2022",l,l,l,l,l,!1,l,l,!1,l,!0,l,B.be,l,l,l,l,l,l,l,l,l,l,l,B.aP,!0,B.a8,l,B.bA,l,l,l,l),1)
 q=m.r?l:m.gatW()
 p=A.kO(l,l,B.F,l,l,l,l,l,l,l,l,l,l,l,new A.bQ(A.b0(20),B.m),l,l,l,l,l)
-return A.k6(j,B.q,A.bL(A.b([r,A.b6(l,A.bp(A.b([n,A.o4(m.r?B.hD:B.a4f,q,p)],s),B.t,B.p,B.o,0),B.n,l,l,new A.b2(B.df,l,new A.cS(new A.aH(B.bk,1,B.v,-1),B.m,B.m,B.m),l,l,l,B.B),l,l,l,B.fP,l,l,l)],s),B.t,B.p,B.o),l,!1,l)}}
+return A.k6(j,B.q,A.bL(A.b([r,A.b6(l,A.bp(A.b([n,A.o4(m.r?B.hD:B.a4e,q,p)],s),B.t,B.p,B.o,0),B.n,l,l,new A.b2(B.df,l,new A.cS(new A.aH(B.bk,1,B.v,-1),B.m,B.m,B.m),l,l,l,B.B),l,l,l,B.fP,l,l,l)],s),B.t,B.p,B.o),l,!1,l)}}
 A.aBR.prototype={
 $0(){this.a.f=!1},
 $S:0}
@@ -51160,7 +51160,7 @@ r=t.N
 return A.W(["title",B.d.b4(B.c.gW(s)),"content",B.d.b4(B.c.b9(B.c.hE(s,1),"\n\n"))],r,r)}r=t.N
 return A.W(["title",a,"content",a],r,r)},
 afQ(){var s=this,r=null,q=A.fY(r,B.aK,!1,r,!0,B.r,r,A.hq(),s.d,r,r,r,r,r,2,B.NU,B.D,!0,r,!0,r,!1,r,B.aR,r,r,r,r,r,r,r,r,1,r,r,!1,"\u2022",r,r,r,r,r,!1,r,r,!1,r,!0,r,B.be,r,r,r,r,r,r,r,r,r,r,r,B.hI,!0,B.a8,r,B.bA,r,r,r,r),p=A.fY(r,B.aK,!1,r,!0,B.r,r,A.hq(),s.e,r,r,r,r,r,2,B.NV,B.D,!0,r,!0,r,!1,r,B.aR,r,r,r,r,r,r,r,r,3,1,r,!1,"\u2022",r,r,r,r,r,!1,r,r,!1,r,!0,r,B.be,r,r,r,r,r,r,r,r,r,r,r,r,!0,B.a8,r,B.bA,r,r,r,r),o=A.fY(r,B.aK,!1,r,!0,B.r,r,A.hq(),s.f,r,r,r,r,r,2,A.kX(r,B.cw,r,r,r,r,r,r,!0,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,B.cQ,"URL de la imagen o selecciona una...",r,r,B.Nr,r,r,r,r,r,r,!0,!0,!1,r,r,r,r,r,r,r,r,A.dp(r,r,B.Nv,r,r,new A.aCa(s),r,r,r),r,r,r,r,r),B.D,!0,r,!0,r,!1,r,B.aR,r,r,r,r,r,r,r,r,1,r,r,!1,"\u2022",r,r,r,r,r,!1,r,r,!1,r,!0,r,B.be,r,r,r,r,r,r,r,r,r,r,r,r,!0,B.a8,r,B.bA,r,r,r,r),n=s.x?r:s.gaf4(),m=A.kO(r,r,B.d1,r,r,r,r,r,r,r,r,r,r,r,new A.bQ(A.b0(20),B.m),r,r,r,r,r)
-return A.b6(r,A.bL(A.b([B.a4N,B.c9,q,p,o,B.c9,new A.dH(B.ei,r,r,A.o4(s.x?B.hD:B.a4g,n,m),r)],t.p),B.dg,B.p,B.o),B.n,r,r,new A.b2(B.df,r,new A.cS(B.m,B.m,new A.aH(B.bk,1,B.v,-1),B.m),r,r,r,B.B),r,r,r,B.bu,r,r,r)},
+return A.b6(r,A.bL(A.b([B.a4N,B.c9,q,p,o,B.c9,new A.dH(B.ei,r,r,A.o4(s.x?B.hD:B.a4f,n,m),r)],t.p),B.dg,B.p,B.o),B.n,r,r,new A.b2(B.df,r,new A.cS(B.m,B.m,new A.aH(B.bk,1,B.v,-1),B.m),r,r,r,B.B),r,r,r,B.bu,r,r,r)},
 J(a){var s=this,r=s.w?B.dD:A.rp(null,new A.aCh(s),s.y.length+1,B.di,null,!1)
 return A.am6(r,B.F,s.gajj())}}
 A.aCb.prototype={
@@ -113798,8 +113798,8 @@ B.a4u=new A.bA("Noticia publicada exitosamente",null,null,null,null,null,null,nu
 B.Z1=new A.fF(B.a4u,B.F,null,null,null,null,null,null,null,null,null,null,null,B.aw,!1,null,null,null,B.r,null)
 B.a4a=new A.bA("Enlace copiado al portapapeles",null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.Z2=new A.fF(B.a4a,null,null,null,null,null,null,null,null,null,null,null,null,B.aw,!1,null,null,null,B.r,null)
-B.a4h=new A.bA("Actividad marcada como le\xedda",null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.Z3=new A.fF(B.a4h,B.S,null,null,null,null,null,null,null,null,null,null,null,B.dh,!1,null,null,null,B.r,null)
+B.a4g=new A.bA("Actividad marcada como le\xedda",null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+B.Z3=new A.fF(B.a4g,B.S,null,null,null,null,null,null,null,null,null,null,null,B.dh,!1,null,null,null,B.r,null)
 B.a4w=new A.bA("Calificaciones guardadas exitosamente",null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.Z4=new A.fF(B.a4w,B.F,null,null,null,null,null,null,null,null,null,null,null,B.aw,!1,null,null,null,B.r,null)
 B.a4b=new A.bA("Error al crear la conversaci\xf3n",null,null,null,null,null,null,null,null,null,null,null,null,null,null)
@@ -114251,14 +114251,14 @@ B.a3_=new A.n(!0,B.S,null,null,null,null,null,B.Y,null,null,null,null,null,null,
 B.a48=new A.bA("M",null,B.a3_,null,null,null,null,null,null,null,null,null,null,null,null)
 B.Ez=new A.bA("Cancelar",null,B.cQ,null,null,null,null,null,null,null,null,null,null,null,null)
 B.a49=new A.bA("\xa1Bienvenido a",null,B.Eg,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a3g=new A.n(!0,B.C,null,null,null,null,22,B.a7,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a4c=new A.bA("NETCONNECT",null,B.a3g,null,null,null,null,null,null,null,null,null,null,null,null)
 B.a1o=new A.n(!0,B.F,null,null,null,null,13,B.c2,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a4d=new A.bA("\xbfOlvidaste tu contrase\xf1a?",null,B.a1o,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a4e=new A.bA("Nuevo mensaje",null,B.nT,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a4f=new A.bA("Comentar",null,B.aP,null,null,null,null,null,null,null,null,null,null,null,null)
+B.a4c=new A.bA("\xbfOlvidaste tu contrase\xf1a?",null,B.a1o,null,null,null,null,null,null,null,null,null,null,null,null)
+B.a4d=new A.bA("Nuevo mensaje",null,B.nT,null,null,null,null,null,null,null,null,null,null,null,null)
+B.a4e=new A.bA("Comentar",null,B.aP,null,null,null,null,null,null,null,null,null,null,null,null)
 B.Ep=new A.n(!0,B.i,null,null,null,null,null,B.Y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a4g=new A.bA("Publicar Noticia",null,B.Ep,null,null,null,null,null,null,null,null,null,null,null,null)
+B.a4f=new A.bA("Publicar Noticia",null,B.Ep,null,null,null,null,null,null,null,null,null,null,null,null)
+B.a1g=new A.n(!0,B.S,null,null,null,null,22,B.eD,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+B.a4h=new A.bA("CONNEC",null,B.a1g,null,null,null,null,null,null,null,null,null,null,null,null)
 B.a10=new A.n(!0,B.eM,null,null,null,null,12,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.a4i=new A.bA("Tipo de Perfil (No modificable)",null,B.a10,null,null,null,null,null,null,null,null,null,null,null,null)
 B.a4j=new A.bA("Nuevo mensaje",null,B.nV,null,null,null,null,null,null,null,null,null,null,null,null)
@@ -114273,8 +114273,8 @@ B.a4v=new A.bA("Sin mensajes a\xfan",null,B.Em,null,null,null,null,null,null,nul
 B.a4x=new A.bA("Guardar",null,B.aP,null,null,null,null,null,null,null,null,null,null,null,null)
 B.a4y=new A.bA("\xbfEst\xe1s seguro de que deseas eliminar esta publicaci\xf3n?",null,B.cQ,null,null,null,null,null,null,null,null,null,null,null,null)
 B.a4z=new A.bA("Respuestas y Comentarios",null,B.Et,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a1g=new A.n(!0,B.S,null,null,null,null,22,B.eD,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a4A=new A.bA("U",null,B.a1g,null,null,null,null,null,null,null,null,null,null,null,null)
+B.a3g=new A.n(!0,B.C,null,null,null,null,22,B.a7,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+B.a4A=new A.bA("NET",null,B.a3g,null,null,null,null,null,null,null,null,null,null,null,null)
 B.a0h=new A.n(!0,null,null,null,null,null,13,B.Y,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.a4B=new A.bA("Responder",null,B.a0h,null,null,null,null,null,null,null,null,null,null,null,null)
 B.a4E=new A.bA("Editar Perfil",null,B.aP,null,null,null,null,null,null,null,null,null,null,null,null)

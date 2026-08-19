@@ -11,7 +11,6 @@ import 'public_profile_screen.dart';
 import 'notifications_screen.dart';
 import '../services/notification_service.dart';
 
-
 class DashboardScreen extends StatefulWidget {
   final VoidCallback? onLogout;
 
@@ -91,10 +90,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final user = _supabase.auth.currentUser;
       if (user != null) {
-        final notifications = await _notificationService.getNotifications(user.id);
+        final notifications = await _notificationService.getNotifications(
+          user.id,
+        );
         if (mounted) {
           setState(() {
-            _unreadNotificationsCount = notifications.where((n) => !n.isRead).length;
+            _unreadNotificationsCount = notifications
+                .where((n) => !n.isRead)
+                .length;
           });
         }
       }
@@ -304,11 +307,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 .schema('notificaciones')
                 .from('notificaciones')
                 .insert({
-              'user_id': targetUserId,
-              'actor_user_id': _supabase.auth.currentUser?.id,
-              'type': 'like_post',
-              'payload': {'encargo_id': encargoId},
-            });
+                  'user_id': targetUserId,
+                  'actor_user_id': _supabase.auth.currentUser?.id,
+                  'type': 'like_post',
+                  'payload': {'encargo_id': encargoId},
+                });
           } catch (e) {
             debugPrint('Error insertando notificacion de like: $e');
           }
@@ -668,7 +671,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'U',
+                    'CONNEC',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
@@ -676,7 +679,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   const Text(
-                    'NETCONNECT',
+                    'NET',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w500,
