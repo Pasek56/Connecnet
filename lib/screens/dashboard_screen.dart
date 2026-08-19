@@ -1126,7 +1126,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         style: TextStyle(fontSize: 14, color: Colors.white70),
                       ),
                       const Text(
-                        'UnetConnect!',
+                        'CONNECNET!',
                         style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w900,
