@@ -287,6 +287,37 @@ class MessagingService {
           })
           .select()
           .single();
+
+      // Get target user UUID from perfil_unificado to create notification
+      try {
+        final receiverProfile = await _supabase
+            .schema('perfiles')
+            .from('perfil_unificado')
+            .select('user_id')
+            .eq('id', receiverId)
+            .maybeSingle();
+
+        final targetUserId = receiverProfile?['user_id'] as String?;
+
+        if (targetUserId != null &&
+            targetUserId != _supabase.auth.currentUser?.id) {
+          await _supabase
+              .schema('notificaciones')
+              .from('notificaciones')
+              .insert({
+            'user_id': targetUserId,
+            'actor_user_id': _supabase.auth.currentUser?.id,
+            'type': 'message',
+            'payload': {
+              'conversation_id': conversationId,
+              'content': content,
+            },
+          });
+        }
+      } catch (e) {
+        debugPrint('Error inserting message notification: $e');
+      }
+
       return inserted;
     } catch (e) {
       debugPrint('Error sending message: $e');

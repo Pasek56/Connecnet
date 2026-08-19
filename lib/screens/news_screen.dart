@@ -86,10 +86,49 @@ class _NewsScreenState extends State<NewsScreen> {
     });
 
     try {
-      await _supabase.schema('publicaciones').from('noticia').insert({
+      final insertedNews =
+          await _supabase.schema('publicaciones').from('noticia').insert({
         'desc_pub': fullDesc,
         'img_pub': imgUrl, // img_pub is NOT NULL
-      });
+      }).select().single();
+
+      // Create global notification for all users
+      try {
+        final profiles = await _supabase
+            .schema('perfiles')
+            .from('perfil_unificado')
+            .select('user_id');
+
+        final userIds = profiles
+            .map((p) => p['user_id'] as String?)
+            .where((id) => id != null)
+            .toList();
+
+        final currentUserId = _supabase.auth.currentUser?.id;
+        final newsId = insertedNews['id_pub'];
+
+        if (userIds.isNotEmpty) {
+          final notifications = userIds.map((uid) {
+            return {
+              'user_id': uid,
+              'actor_user_id': currentUserId,
+              'type': 'message', // using 'message' with special payload
+              'payload': {
+                'is_global_news': true,
+                'news_id': newsId,
+              },
+            };
+          }).toList();
+
+          // Insert in batches if necessary, but Supabase insert handles arrays.
+          await _supabase
+              .schema('notificaciones')
+              .from('notificaciones')
+              .insert(notifications);
+        }
+      } catch (notifError) {
+        debugPrint('Error creating global news notifications: $notifError');
+      }
 
       _newsTitleController.clear();
       _newsContentController.clear();

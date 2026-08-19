@@ -283,10 +283,6 @@ class _ConversationsScreenState extends State<ConversationsScreen>
           conversation['created_at'] as String?,
     );
 
-    // Was the last message sent by me?
-    final isMine = lastMessage != null &&
-        lastMessage['sender_id'] == _profileId;
-
     return AnimatedContainer(
       duration: Duration(milliseconds: 200 + index * 50),
       curve: Curves.easeOut,
@@ -386,15 +382,6 @@ class _ConversationsScreenState extends State<ConversationsScreen>
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        if (isMine)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 4),
-                            child: Icon(
-                              Icons.done_all,
-                              size: 16,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
                         Expanded(
                           child: Text(
                             lastText,

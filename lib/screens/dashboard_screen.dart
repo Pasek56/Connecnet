@@ -9,6 +9,7 @@ import 'news_screen.dart';
 import 'conversations_screen.dart';
 import 'public_profile_screen.dart';
 import 'notifications_screen.dart';
+import '../services/notification_service.dart';
 
 
 class DashboardScreen extends StatefulWidget {
@@ -38,6 +39,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Set<int> _likedEncargos = {};
   Map<int, int> _likeCounts = {};
 
+  // Notification state
+  int _unreadNotificationsCount = 0;
+  final _notificationService = NotificationService();
+  RealtimeChannel? _notificationChannel;
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +54,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void dispose() {
     _postController.dispose();
     _searchController.dispose();
+    if (_notificationChannel != null) {
+      _notificationService.unsubscribe(_notificationChannel!);
+    }
     super.dispose();
   }
 
@@ -69,10 +78,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _fetchUserProfile();
     await _fetchEncargos();
     await _fetchLikes();
+    await _fetchUnreadNotificationsCount();
+    _subscribeToNotifications();
     if (mounted) {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _fetchUnreadNotificationsCount() async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user != null) {
+        final notifications = await _notificationService.getNotifications(user.id);
+        if (mounted) {
+          setState(() {
+            _unreadNotificationsCount = notifications.where((n) => !n.isRead).length;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error al cargar conteo de notificaciones: $e');
+    }
+  }
+
+  void _subscribeToNotifications() {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+    try {
+      _notificationChannel = _notificationService.subscribeToNotifications(
+        user.id,
+        (_) => _fetchUnreadNotificationsCount(),
+      );
+    } catch (e) {
+      debugPrint('Error al suscribirse a notificaciones: $e');
     }
   }
 
@@ -226,7 +266,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _toggleLike(int encargoId) async {
+  Future<void> _toggleLike(int encargoId, String? targetUserId) async {
     final profileId = _userProfile?['id'] as int?;
     if (profileId == null) return;
 
@@ -256,6 +296,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
           'encargo_id': encargoId,
           'profile_id': profileId,
         });
+
+        if (targetUserId != null &&
+            targetUserId != _supabase.auth.currentUser?.id) {
+          try {
+            await _supabase
+                .schema('notificaciones')
+                .from('notificaciones')
+                .insert({
+              'user_id': targetUserId,
+              'actor_user_id': _supabase.auth.currentUser?.id,
+              'type': 'like_post',
+              'payload': {'encargo_id': encargoId},
+            });
+          } catch (e) {
+            debugPrint('Error insertando notificacion de like: $e');
+          }
+        }
       }
     } catch (e) {
       // Revert on failure
@@ -662,30 +719,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         onPressed: _openNotificationsScreen,
                       ),
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          child: const Text(
-                            '1',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                      if (_unreadNotificationsCount > 0)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            textAlign: TextAlign.center,
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Text(
+                              '$_unreadNotificationsCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                   IconButton(
@@ -896,25 +954,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
             : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: ListTile(
-        onTap: onTap ?? () {},
-        dense: true,
-        leading: Icon(icon, color: itemColor, size: 16),
-        title: Text(
-          title,
-          style: TextStyle(
-            color:
-                color ??
-                (isSelected ? const Color(0xFF003E90) : Colors.black87),
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 13,
+      child: Material(
+        color: Colors.transparent,
+        clipBehavior: Clip.antiAlias,
+        borderRadius: BorderRadius.circular(8),
+        child: ListTile(
+          onTap: onTap ?? () {},
+          dense: true,
+          leading: Icon(icon, color: itemColor, size: 16),
+          title: Text(
+            title,
+            style: TextStyle(
+              color:
+                  color ??
+                  (isSelected ? const Color(0xFF003E90) : Colors.black87),
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              fontSize: 13,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+          minLeadingWidth: 0,
+          visualDensity: const VisualDensity(vertical: -3),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-        minLeadingWidth: 0,
-        visualDensity: const VisualDensity(vertical: -3),
       ),
     );
   }
@@ -971,8 +1034,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _openNotificationsScreen() {
-    showDialog(
+  Future<void> _openNotificationsScreen() async {
+    await showDialog(
       context: context,
       builder: (context) {
         return Dialog(
@@ -995,6 +1058,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       },
     );
+    _fetchUnreadNotificationsCount();
   }
 
   Widget _buildCourseBannerCard() {
@@ -1573,7 +1637,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             isLiked ? Icons.favorite : Icons.favorite_border,
                             likeCount > 0 ? '$likeCount' : '0',
                             color: isLiked ? Colors.redAccent : null,
-                            onTap: () => _toggleLike(encargoId),
+                            onTap: () {
+                              final sender =
+                                  encargo['sender'] as Map<String, dynamic>?;
+                              final targetUserId =
+                                  sender?['user_id'] as String?;
+                              _toggleLike(encargoId, targetUserId);
+                            },
                           ),
                         ],
                       ),
